@@ -1,0 +1,10 @@
+version: "3.8"
+services:
+  crypto-app:
+    build: .
+    image: crypto-project:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/data:rw
+    restart: unless-stopped
