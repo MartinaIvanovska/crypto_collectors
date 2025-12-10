@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title th:text="'History — ' + ${symbol}">History</title>
+    <style>
+        body { font-family: Arial, Helvetica, sans-serif; margin: 24px; color: #111 }
+        table { border-collapse: collapse; width: 100%; max-width: 1000px; }
+        th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #e6e6e6; font-size: 13px; }
+        th { font-weight: 600; }
+        a { text-decoration: none; color: #0b5ed7; }
+        .header { display:flex; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+        .meta { color: #666; font-size: 13px; }
+        .pager { margin-top: 14px; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h2 th:text="${symbol}">SYMBOL</h2>
+    <div class="meta">
+        <span th:if="${latest != null}">
+            Latest: <strong th:text="${latest.close}">0.00</strong>
+            (date: <span th:text="${latest.date}">YYYY-MM-DD</span>)
+        </span>
+    </div>
+</div>
+
+<table>
+    <thead>
+    <tr>
+        <th>Date</th>
+        <th>Open</th>
+        <th>High</th>
+        <th>Low</th>
+        <th>Close</th>
+        <th>Volume</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="d : ${page.content}">
+        <td th:text="${d.date}">YYYY-MM-DD</td>
+        <td th:text="${d.open}">0.00</td>
+        <td th:text="${d.high}">0.00</td>
+        <td th:text="${d.low}">0.00</td>
+        <td th:text="${d.close}">0.00</td>
+        <td th:text="${d.volume}">0</td>
+    </tr>
+    <tr th:if="${#lists.isEmpty(page.content)}">
+        <td colspan="6" class="meta">No history for this symbol.</td>
+    </tr>
+    </tbody>
+</table>
+
+<div class="pager">
+    <a th:href="@{/cryptos}">← Back to list</a>
+    <span style="margin-left:16px;"></span>
+    <a th:if="${page.hasPrevious()}"
+       th:href="@{|/cryptos/${symbol}(page=${page.number-1}, size=${page.size})|}">◀ Previous</a>
+    <span th:if="${page.hasNext()}" style="margin-left:8px;"></span>
+    <a th:if="${page.hasNext()}"
+       th:href="@{|/cryptos/${symbol}(page=${page.number+1}, size=${page.size})|}">Next ▶</a>
+</div>
+
+</body>
+</html>
