@@ -3,44 +3,52 @@ package mk.ukim.finki.das.cryptoproject.web;
 import mk.ukim.finki.das.cryptoproject.model.Daily;
 import mk.ukim.finki.das.cryptoproject.service.CryptoService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-@RestController
-@RequestMapping("/api/coins")
+import org.springframework.data.domain.Pageable;
+
+@RequestMapping("/cryptos")
+@Controller
 public class CryptoController {
 
     @Autowired
-    private CryptoService service;
+    private CryptoService cryptoService;
 
-    // GET /api/coins?page=0&size=50&sort=volume,desc
+    /**
+     * List latest row per symbol (one row per symbol).
+     * Supports pageable + sorting (the service only accepts simple sorts: symbol, date, close, volume).
+     */
     @GetMapping
-    public Page<LatestDto> listLatest(@RequestParam(defaultValue = "0") int page,
-                                      @RequestParam(defaultValue = "50") int size,
-                                      @RequestParam(required = false) String sort) {
-        Sort s = Sort.by("symbol").ascending();
-        if (sort != null && !sort.isBlank()) {
-            String[] parts = sort.split(",");
-            String prop = parts[0];
-            Sort.Direction dir = parts.length > 1 && parts[1].equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
-            s = Sort.by(dir, prop);
-        }
-        Pageable pageable = PageRequest.of(page, size, s);
-        return service.getLatestPerSymbol(pageable);
+    public String listLatest(
+            @PageableDefault(size = 20, sort = "symbol", direction = Sort.Direction.ASC) Pageable pageable,
+            Model model) {
+
+        var page = cryptoService.getLatestPerSymbol(pageable);
+        model.addAttribute("page", page);
+        return "list";
     }
 
-    // GET /api/coins/{symbol}
+    /**
+     * Show full history for a single symbol.
+     */
     @GetMapping("/{symbol}")
-    public Daily latestForSymbol(@PathVariable String symbol) {
-        return service.getLatestForSymbol(symbol);
+    public String symbolHistory(
+            @PathVariable("symbol") String symbol,
+            @PageableDefault(size = 30, sort = "date", direction = Sort.Direction.DESC) Pageable pageable,
+            Model model) {
+
+        Page<Daily> page = cryptoService.getHistory(symbol, pageable);
+        Daily latest = cryptoService.getLatestForSymbol(symbol);
+
+        model.addAttribute("page", page);
+        model.addAttribute("symbol", symbol);
+        model.addAttribute("latest", latest);
+        return "history";
     }
 
-    // GET /api/coins/{symbol}/history?page=0&size=100
-    @GetMapping("/{symbol}/history")
-    public Page<Daily> history(@PathVariable String symbol,
-                               @RequestParam(defaultValue = "0") int page,
-                               @RequestParam(defaultValue = "100") int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "date"));
-        return service.getHistory(symbol, pageable);
-    }
 }
