@@ -36,7 +36,7 @@ public class CryptoController {
     /**
      * Show full history for a single symbol.
      */
-    @GetMapping("/{symbol}")
+    @GetMapping("/{symbol:.+}")
     public String symbolHistory(
             @PathVariable("symbol") String symbol,
             @PageableDefault(size = 30, sort = "date", direction = Sort.Direction.DESC) Pageable pageable,

@@ -51,15 +51,18 @@
     </tr>
     </tbody>
 </table>
-
 <div class="pager">
     <a th:href="@{/cryptos}">← Back to list</a>
     <span style="margin-left:16px;"></span>
     <a th:if="${page.hasPrevious()}"
-       th:href="@{|/cryptos/${symbol}(page=${page.number-1}, size=${page.size})|}">◀ Previous</a>
+       th:href="@{/cryptos/{symbol}(symbol=${symbol}, page=${page.number-1}, size=${page.size})}">
+        ◀ Previous
+    </a>
     <span th:if="${page.hasNext()}" style="margin-left:8px;"></span>
     <a th:if="${page.hasNext()}"
-       th:href="@{|/cryptos/${symbol}(page=${page.number+1}, size=${page.size})|}">Next ▶</a>
+       th:href="@{/cryptos/{symbol}(symbol=${symbol}, page=${page.number+1}, size=${page.size})}">
+        Next ▶
+    </a>
 </div>
 
 </body>
