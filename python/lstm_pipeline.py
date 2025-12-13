@@ -8,25 +8,19 @@ from tensorflow.keras.layers import LSTM, Dense
 from concurrent.futures import ProcessPoolExecutor
 import os
 
-# -------------------------
-# Settings
-# -------------------------
+
 LOOKBACK = 30  # days
 DB_PATH = os.path.join("data", "crypto_daily.db")  # adjust if needed
 NUM_WORKERS = 4  # number of parallel processes
 
-# -------------------------
-# Database connection (main)
-# -------------------------
+
 conn_main = sqlite3.connect(DB_PATH)
 coins_df = pd.read_sql("SELECT DISTINCT symbol FROM daily", conn_main)
 coin_list = coins_df['symbol'].tolist()
 conn_main.close()
 print(f"Found {len(coin_list)} coins")
 
-# -------------------------
-# Functions
-# -------------------------
+
 def build_lstm_model(lookback, features):
     model = Sequential()
     model.add(LSTM(50, return_sequences=True, input_shape=(lookback, features)))
@@ -94,9 +88,7 @@ def process_coin(coin_symbol):
     except Exception as e:
         print(f" Skipping {coin_symbol}: {e}")
 
-# -------------------------
-# Parallel processing
-# -------------------------
+
 if __name__ == "__main__":
     # Make sure predictions table exists
     conn = sqlite3.connect(DB_PATH)
@@ -110,6 +102,6 @@ if __name__ == "__main__":
     """)
     conn.close()
 
-    # Run in parallel
+
     with ProcessPoolExecutor(max_workers=NUM_WORKERS) as executor:
         executor.map(process_coin, coin_list)
