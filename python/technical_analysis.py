@@ -21,10 +21,17 @@ def load_data():
     df = df.sort_values(["symbol", "date"])
     return df
 
+def compute_for_all():
+    df = load_data()
+    for symbol, g in df.groupby("symbol"):
+        print("\nSymbol:", symbol)
+        print(g.head(3))
+
+
 def main():
     print ("Loading data from:", DB_PATH)
-    df = load_data()
-    print(df.head())
+    compute_for_all()
+    print("Done")
 
 if __name__ == "__main__":
     main()
