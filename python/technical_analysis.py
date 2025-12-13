@@ -24,32 +24,45 @@ def load_data():
 
 def add_indicators(df):
     """
-    First version: add oscillators rsi, macd, stoch
+    add oscillators: rsi, macd, stoch, adx, cci
     """
-    if len(df) == 0:
+    n = len(df)
+    if n == 0:
         return df
 
     df["rsi"] = ta.momentum.rsi(df["close"], window = 14)
     df["macd"] = ta.trend.macd_diff(df["close"])
     df["stoch"] = ta.momentum.stoch(df["high"], df["low"], df["close"])
+
+    if n >= 30:
+        try:
+            df["adx"] = ta.trend.adx(df["high"], df["low"], df["close"], window = 14)
+        except Exception:
+            df["adx"] = pd.Series(index = df.index, dtype = "float64")
+    else:
+        df["adx"] = pd.Series(index = df.index, dtype = "float64")
+
+    df["cci"] = ta.trend.cci(df["high"], df["low"], df["close"], window=20)
+
     return df
 
 
 def compute_for_all():
     df = load_data()
+
     for symbol, g in df.groupby("symbol"):
-        g = g.copy();
+        g = g.copy()
         g.set_index("date", inplace=True)
 
         daily = add_indicators(g.copy())
         print("\nSymbol:", symbol)
-        print(daily[["close", "rsi", "macd", "stoch"]].tail(3))
+        print(daily[["close", "rsi", "macd", "stoch", "adx", "cci"]].tail(3))
 
 
 def main():
     print ("Loading data from:", DB_PATH)
     compute_for_all()
-    print("Done")
+    print("Done.")
 
 if __name__ == "__main__":
     main()
