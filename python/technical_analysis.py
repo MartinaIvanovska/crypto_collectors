@@ -130,11 +130,49 @@ def compute_for_all():
     print(all_df.head())
     return all_df
 
+def save_to_db(all_df):
+    conn = sqlite3.connect(DB_PATH)
+
+    create_sql = f"""
+    CREATE TABLE IF NOT EXISTS {TARGET_TABLE} (
+        symbol TEXT,
+        date TEXT,
+        timeframe TEXT,
+        rsi REAL,
+        macd REAL,
+        stoch REAL,
+        adx REAL,
+        cci REAL,
+        sma20 REAL,
+        ema20 REAL,
+        wma20 REAL,
+        bb_high REAL,
+        bb_low REAL,
+        vol_sma20 REAL,
+        signal TEXT
+    )
+    """
+
+    conn.execute(create_sql)
+    conn.execute(f"DELETE FROM {TARGET_TABLE}")
+
+    indicators_df = all_df[[
+        "symbol", "date", "timeframe",
+        "rsi", "macd", "stoch", "adx", "cci",
+        "sma20", "ema20", "wma20", "bb_high", "bb_low", "vol_sma20",
+        "signal",
+    ]]
+
+    indicators_df.to_sql(TARGET_TABLE, conn, if_exists="append", index=False)
+    conn.commit()
+    conn.close()
+
 
 def main():
     print ("Loading data from:", DB_PATH)
     all_df = compute_for_all()
-    print("Total rows:", len(all_df))
+    save_to_db(all_df)
+    print("Done. Indicators saved to table:", TARGET_TABLE)
 
 if __name__ == "__main__":
     main()
