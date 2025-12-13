@@ -44,6 +44,24 @@ def add_indicators(df):
 
     df["cci"] = ta.trend.cci(df["high"], df["low"], df["close"], window=20)
 
+    if n >= 20:
+        df["sma20"] = ta.trend.sma_indicator(df["close"], window = 20)
+        df["ema20"] = ta.trend.ema_indicator(df["close"], window = 20)
+        df["wma20"] = ta.trend.wma_indicator(df["close"], window = 20)
+
+        bb = ta.volatility.BollingerBands(df["close"], window = 20, window_dev=2)
+        df["bb_high"] = bb.bollinger_hband()
+        df["bb_low"] = bb.bollinger_lband()
+
+        df["vol_sma20"] = ta.trend.sma_indicator(df["volume"], window = 20)
+    else:
+        df["sma20"] = pd.Series(index = df.index, dtype = "float64")
+        df["ema20"] = pd.Series(index = df.index, dtype = "float64")
+        df["wma20"] = pd.Series(index = df.index, dtype = "float64")
+        df["bb_high"] = pd.Series(index = df.index, dtype = "float64")
+        df["bb_low"] = pd.Series(index = df.index, dtype = "float64")
+        df["vol_sma20"] = pd.Series(index = df.index, dtype = "float64")
+
     return df
 
 
@@ -56,7 +74,8 @@ def compute_for_all():
 
         daily = add_indicators(g.copy())
         print("\nSymbol:", symbol)
-        print(daily[["close", "rsi", "macd", "stoch", "adx", "cci"]].tail(3))
+        print(daily[["close", "rsi", "macd", "stoch", "adx", "cci",
+                     "sma20", "ema20", "wma20", "bb_high", "bb_low", "vol_sma20"]].tail(3))
 
 
 def main():
