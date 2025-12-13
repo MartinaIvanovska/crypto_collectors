@@ -64,6 +64,24 @@ def add_indicators(df):
 
     return df
 
+def generate_signal(row):
+    buy = (
+        row.get("rsi", 50) < 30 and
+        row.get("macd", 0) > 0 and
+        row.get("close", 0) < row.get("bb_low", float("inf"))
+    )
+
+    sell = (
+        row.get("rsi", 50) > 70 and
+        row.get("macd", 0) < 0 and
+        row.get("close", 0) < row.get("bb_high", 0)
+    )
+
+    if buy:
+        return "BUY"
+    if sell:
+        return "SELL"
+    return "HOLD"
 
 def compute_for_all():
     df = load_data()
@@ -73,9 +91,10 @@ def compute_for_all():
         g.set_index("date", inplace=True)
 
         daily = add_indicators(g.copy())
+        daily["signal"] = daily.apply(generate_signal, axis=1)
+
         print("\nSymbol:", symbol)
-        print(daily[["close", "rsi", "macd", "stoch", "adx", "cci",
-                     "sma20", "ema20", "wma20", "bb_high", "bb_low", "vol_sma20"]].tail(3))
+        print(daily[["close", "rsi", "macd", "bb_low", "bb_high", "signal"]].tail(5))
 
 
 def main():
