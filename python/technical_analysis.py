@@ -83,24 +83,58 @@ def generate_signal(row):
         return "SELL"
     return "HOLD"
 
+def resample_timeframe(df, rule, label):
+    ohlc = {
+        "open": "first",
+        "high": "max",
+        "low": "min",
+        "close": "last",
+        "volume": "sum",
+        "source_timestamp": "last",
+    }
+    r = df.resample(rule).apply(ohlc)
+    r["timeframe"] = label
+    return r
+
 def compute_for_all():
     df = load_data()
+    results = []
 
     for symbol, g in df.groupby("symbol"):
         g = g.copy()
         g.set_index("date", inplace=True)
 
+        #daily
         daily = add_indicators(g.copy())
+        daily["timeframe"] = "1D"
         daily["signal"] = daily.apply(generate_signal, axis=1)
+        daily["symbol"] = symbol
+        results.append(daily)
 
-        print("\nSymbol:", symbol)
-        print(daily[["close", "rsi", "macd", "bb_low", "bb_high", "signal"]].tail(5))
+        #weekly
+        weekly_raw = resample_timeframe(g, "W", "1W")
+        weekly = add_indicators(weekly_raw.copy())
+        weekly["signal"] = weekly.apply(generate_signal, axis=1)
+        weekly["symbol"] = symbol
+        results.append(weekly)
+
+        #monthly
+        monthly_raw = resample_timeframe(g, "ME", "1M")
+        monthly = add_indicators(monthly_raw.copy())
+        monthly["signal"] = monthly.apply(generate_signal, axis=1)
+        monthly["symbol"] = symbol
+        results.append(monthly)
+
+    all_df = pd.concat(results)
+    all_df.reset_index(inplace=True)
+    print(all_df.head())
+    return all_df
 
 
 def main():
     print ("Loading data from:", DB_PATH)
-    compute_for_all()
-    print("Done.")
+    all_df = compute_for_all()
+    print("Total rows:", len(all_df))
 
 if __name__ == "__main__":
     main()
