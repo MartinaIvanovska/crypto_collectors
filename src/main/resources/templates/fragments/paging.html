@@ -40,9 +40,18 @@
         </div>
 
         <div class="col-4">
-            <div class="d-flex align-items-center mb-3">
-                <label for="results" class="mr-2 mb-0">Results by page: </label>
-                <select id="results" class="form-control custom-select" style="max-width: 100px;"
+            <div class="d-flex align-items-center mb-3" style="gap: 8px; color: #e0e0e0; font-size: 13px;">
+                <label for="results" class="mb-0">Results by page:</label>
+                <select id="results"
+                        style="
+                    background-color: #1e1e1e;
+                    color: #e0e0e0;
+                    border: 1px solid #444;
+                    border-radius: 4px;
+                    padding: 4px 8px;
+                    font-size: 13px;
+                    transition: border 0.2s, background 0.2s;
+                    max-width: 100px;"
                         onchange="updateQueryStringParameter('pageSize',this.value)">
                     <option value="10" th:selected="${page.size == 10}">10</option>
                     <option value="20" th:selected="${page.size == 20}">20</option>
@@ -50,8 +59,8 @@
                     <option value="100" th:selected="${page.size == 100}">100</option>
                     <option value="1000" th:selected="${page.size == 1000}">1000</option>
                 </select>
-                <span class="ms-1 me-1"> / Total: </span>
-                <b class="ms-1" th:text="${page.totalElements}"></b>
+                <span>/ Total:</span>
+                <b th:text="${page.totalElements}"></b>
             </div>
         </div>
     </div>
