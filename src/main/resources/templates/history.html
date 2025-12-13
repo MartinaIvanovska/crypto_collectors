@@ -4,26 +4,69 @@
     <meta charset="UTF-8" />
     <title th:text="'History — ' + ${symbol}">History</title>
     <style>
-        body { font-family: Arial, Helvetica, sans-serif; margin: 24px; color: #111 }
-        table { border-collapse: collapse; width: 100%; max-width: 1000px; }
-        th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #e6e6e6; font-size: 13px; }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            margin: 24px;
+            color: #111;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            max-width: 900px;
+            margin: 20px 0;
+        }
+        th, td {
+            padding: 8px 10px;
+            text-align: left;
+            border-bottom: 1px solid #e6e6e6;
+            font-size: 14px;
+        }
         th { font-weight: 600; }
-        a { text-decoration: none; color: #0b5ed7; }
+        a.button {
+            text-decoration: none;
+            color: white;
+            background-color: #0b5ed7;
+            padding: 5px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        a.button:hover { background-color: #084298; }
         .header { display:flex; align-items: baseline; gap: 12px; margin-bottom: 12px; }
-        .meta { color: #666; font-size: 13px; }
-        .pager { margin-top: 14px; }
+        .meta { margin-bottom: 12px; color: #666; font-size: 13px; }
+        .pager { margin-top: 16px; display: flex; justify-content: center; }
+        .pagination { list-style: none; display: flex; padding: 0; }
+        .pagination li { margin: 0 4px; }
+        .pagination a {
+            text-decoration: none;
+            color: #0b5ed7;
+            padding: 5px 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .pagination a:hover { background-color: #0b5ed7; color: white; }
+        .pagination .active a { background-color: #0b5ed7; color: white; }
+        .pagination .disabled a { color: #ccc; border-color: #ccc; pointer-events: none; }
     </style>
 </head>
 <body>
 
 <div class="header">
     <h2 th:text="${symbol}">SYMBOL</h2>
-    <div class="meta">
-        <span th:if="${latest != null}">
-            Latest: <strong th:text="${latest.close}">0.00</strong>
-            (date: <span th:text="${latest.date}">YYYY-MM-DD</span>)
-        </span>
-    </div>
+    <a th:href="@{/cryptos}" class="button">Back to List</a>
+</div>
+
+<div class="meta">
+    <span th:if="${latest != null}">
+        Latest: <strong th:text="${latest.close}">0.00</strong>
+        (date: <span th:text="${latest.date}">YYYY-MM-DD</span>)
+    </span>
+</div>
+
+<div class="meta">
+    Showing page <span th:text="${page.number + 1}">1</span> of <span th:text="${page.totalPages}">1</span>
 </div>
 
 <table>
@@ -51,19 +94,8 @@
     </tr>
     </tbody>
 </table>
-<div class="pager">
-    <a th:href="@{/cryptos}">← Back to list</a>
-    <span style="margin-left:16px;"></span>
-    <a th:if="${page.hasPrevious()}"
-       th:href="@{/cryptos/{symbol}(symbol=${symbol}, page=${page.number-1}, size=${page.size})}">
-        ◀ Previous
-    </a>
-    <span th:if="${page.hasNext()}" style="margin-left:8px;"></span>
-    <a th:if="${page.hasNext()}"
-       th:href="@{/cryptos/{symbol}(symbol=${symbol}, page=${page.number+1}, size=${page.size})}">
-        Next ▶
-    </a>
-</div>
+
+<div th:replace="fragments/paging :: pageSection(${page})"></div>
 
 </body>
 </html>

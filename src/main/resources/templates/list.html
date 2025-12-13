@@ -4,15 +4,22 @@
     <meta charset="UTF-8" />
     <title>Cryptos — Latest</title>
     <style>
-        body { font-family: Arial, Helvetica, sans-serif; margin: 24px; color: #111 }
-        table { border-collapse: collapse; width: 100%; max-width: 900px; }
+        body { font-family: Arial, Helvetica, sans-serif; margin: 24px; color: #111; display: flex; flex-direction: column; align-items: center; }
+        table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 20px 0; }
         th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #e6e6e6; font-size: 14px; }
         th { font-weight: 600; }
-        a { text-decoration: none; color: #0b5ed7; }
+        a.button { text-decoration: none; color: white; background-color: #0b5ed7; padding: 5px 12px; border-radius: 4px; font-size: 13px; }
+        a.button:hover { background-color: #084298; }
         .meta { margin-bottom: 12px; color: #666; font-size: 13px; }
-        .pager { margin-top: 16px; }
-        .small { font-size: 12px; color:#666; }
+        .pager { margin-top: 16px; display: flex; justify-content: center; }
+        .pagination { list-style: none; display: flex; padding: 0; }
+        .pagination li { margin: 0 4px; }
+        .pagination a { text-decoration: none; color: #0b5ed7; padding: 5px 10px; border: 1px solid #ccc; border-radius: 4px; }
+        .pagination a:hover { background-color: #0b5ed7; color: white; }
+        .pagination .active a { background-color: #0b5ed7; color: white; }
+        .pagination .disabled a { color: #ccc; border-color: #ccc; pointer-events: none; }
     </style>
+
 </head>
 <body>
 <h2>Cryptocurrencies — Latest</h2>
@@ -40,7 +47,7 @@
         <td th:text="${row.volume}">0</td>
         <td th:text="${row.sourceTimestamp}">0</td>
         <td>
-            <a th:href="@{|/cryptos/${row.symbol}|}">Details</a>
+            <a th:href="@{|/cryptos/${row.symbol}|}" class="button">Details</a>
         </td>
     </tr>
     <tr th:if="${#lists.isEmpty(page.content)}">
@@ -49,13 +56,15 @@
     </tbody>
 </table>
 
-<div class="pager">
-    <a th:if="${page.hasPrevious()}"
-       th:href="@{/cryptos(page=${page.number - 1}, size=${page.size})}">◀ Previous</a>
-    <span th:if="${page.hasPrevious()}" style="margin-right:12px;"></span>
-    <a th:if="${page.hasNext()}"
-       th:href="@{/cryptos(page=${page.number + 1}, size=${page.size})}">Next ▶</a>
-</div>
+<div th:replace="fragments/paging :: pageSection(${page})"></div>
+
+<!--<div class="pager">-->
+<!--    <a th:if="${page.hasPrevious()}"-->
+<!--       th:href="@{/cryptos(page=${page.number - 1}, size=${page.size})}">◀ Previous</a>-->
+<!--    <span th:if="${page.hasPrevious()}" style="margin-right:12px;"></span>-->
+<!--    <a th:if="${page.hasNext()}"-->
+<!--       th:href="@{/cryptos(page=${page.number + 1}, size=${page.size})}">Next ▶</a>-->
+<!--</div>-->
 
 </body>
 </html>
