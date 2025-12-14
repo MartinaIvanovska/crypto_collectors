@@ -25,11 +25,13 @@ def load_data():
 def add_indicators(df):
     """
     add oscillators: rsi, macd, stoch, adx, cci
+    add moving averages: sma20, ema20, wma20, bb_high_b_low, vol_sma20
     """
     n = len(df)
     if n == 0:
         return df
 
+    #5 oscillators
     df["rsi"] = ta.momentum.rsi(df["close"], window = 14)
     df["macd"] = ta.trend.macd_diff(df["close"])
     df["stoch"] = ta.momentum.stoch(df["high"], df["low"], df["close"])
@@ -44,6 +46,7 @@ def add_indicators(df):
 
     df["cci"] = ta.trend.cci(df["high"], df["low"], df["close"], window=20)
 
+    #5 moving averages
     if n >= 20:
         df["sma20"] = ta.trend.sma_indicator(df["close"], window = 20)
         df["ema20"] = ta.trend.ema_indicator(df["close"], window = 20)
@@ -65,23 +68,98 @@ def add_indicators(df):
     return df
 
 def generate_signal(row):
-    buy = (
-        row.get("rsi", 50) < 30 and
-        row.get("macd", 0) > 0 and
-        row.get("close", 0) < row.get("bb_low", float("inf"))
-    )
+    """
+    Generates BUY/SELL/HOLD signal using technical indicators:
+    RSI, MACD, STOCH, ADX, CCI, SMA20, EMA20, WMA20, BollingerBands, vol_sma20
+    """
+    #Default values
+    close = row.get("close", 0)
 
-    sell = (
-        row.get("rsi", 50) > 70 and
-        row.get("macd", 0) < 0 and
-        row.get("close", 0) < row.get("bb_high", 0)
-    )
+    rsi = row.get("rsi", 50)
+    macd = row.get("macd", 0)
+    stoch = row.get("stoch", 50)
+    adx = row.get("adx", 0)
+    cci = row.get("cci", 0)
 
-    if buy:
+    sma20 = row.get("sma20", close)
+    ema20 = row.get("ema20", close)
+    wma20 = row.get("wma20", close)
+    bb_high = row.get("bb_high", float("inf"))
+    bb_low = row.get("bb_low", float("-inf"))
+    vol_sma20 = row.get("vol_sma20", 0)
+    volume = row.get("volume", 0)
+
+    buy_score = 0
+    sell_score = 0
+
+    # ---Oscillators---
+    #RSI
+    if rsi < 30:
+        buy_score += 2
+    elif rsi < 40:
+        buy_score += 1
+    if rsi > 70:
+        sell_score += 2
+    elif rsi > 60:
+        sell_score += 1
+
+    #MACD
+    if macd > 0:
+        buy_score += 1
+    if macd < 0:
+        sell_score += 1
+
+    #STOCH
+    if stoch < 20:
+        buy_score += 1
+    if stoch > 80:
+        sell_score += 1
+
+    #ADX
+    if adx > 20 and macd > 0:
+        buy_score += 1
+    if adx > 20 and macd < 0:
+        sell_score += 1
+
+    #CCI
+    if cci < -100:
+        buy_score += 1
+    if cci > 100:
+        sell_score += 1
+
+    #---Moving averages---
+
+    #Price vs Moving averages
+    if close > sma20 and close > ema20 and close > wma20:
+        buy_score += 1
+    if close < sma20 and close < ema20 and close < wma20:
+        sell_score += 1
+
+    #Bollinger bands
+    if close < bb_low:
+        buy_score += 2
+    elif close < (sma20 or close):
+        buy_score += 1
+
+    if close > bb_high:
+        sell_score += 2
+    elif close > (sma20 or close):
+        sell_score += 1
+
+    #Volume signal
+    if volume > vol_sma20 and buy_score > 0:
+        buy_score += 1
+    if volume > vol_sma20 and sell_score > 0:
+        sell_score += 1
+
+    #---FINAL SIGNAL----
+    if buy_score >=4 and buy_score >= sell_score + 2:
         return "BUY"
-    if sell:
+    elif sell_score >=4 and sell_score >= buy_score + 2:
         return "SELL"
-    return "HOLD"
+    else:
+        return "HOLD"
+
 
 def resample_timeframe(df, rule, label):
     ohlc = {
@@ -97,6 +175,10 @@ def resample_timeframe(df, rule, label):
     return r
 
 def compute_for_all():
+    """
+    Batch analysis for all symbols and three timeframes
+    Returns DataFrame with indicators and signals
+    """
     df = load_data()
     results = []
 
