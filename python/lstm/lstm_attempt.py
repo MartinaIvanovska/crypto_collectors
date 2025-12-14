@@ -20,7 +20,7 @@ from tensorflow.keras.callbacks import EarlyStopping
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # base paths (adjust if needed)
-BASE_DIR = os.path.dirname(os.path.abspath("das_project_springboot/.."))
+BASE_DIR = os.path.dirname(os.path.abspath("das_project_springboot/../.."))
 DB_PATH = os.path.join(BASE_DIR, "data", "crypto_daily.db")
 MODEL_DIR = os.path.join(BASE_DIR, "models")
 os.makedirs(MODEL_DIR, exist_ok=True)
