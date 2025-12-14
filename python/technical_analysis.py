@@ -231,7 +231,8 @@ def save_to_db(all_df):
         bb_high REAL,
         bb_low REAL,
         vol_sma20 REAL,
-        signal TEXT
+        signal TEXT,
+        PRIMARY KEY (symbol, date, timeframe)
     )
     """
 
