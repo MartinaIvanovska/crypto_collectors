@@ -36,7 +36,8 @@ FUTURE_PRED_DAYS = 30            # write next 30 days of forecasts
 # logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 logger = logging.getLogger(__name__)
-
+#%% helpers for paths
+MODEL_DIR
 #%% helpers for paths
 def model_path(symbol, lookback):
     return os.path.join(MODEL_DIR, f"{symbol}_lb{lookback}.h5")
@@ -163,7 +164,8 @@ def process_coin(symbol, lookback=30, forecast_days=10, dry_run=False, min_sampl
         # load or build model
         mp = model_path(symbol, lookback)
         if os.path.exists(mp):
-            model = load_model(mp)
+            model = load_model(mp, compile=False)
+            model.compile(optimizer="adam", loss="mse")
             initial_epochs = 5
             logger.info(f"{symbol}: loaded existing model {mp}, will fine-tune for {initial_epochs} epochs")
         else:
@@ -325,3 +327,4 @@ if __name__ == "__main__":
             # show saved future forecasts (next 30)
             for d, p in zip(out["future_dates"], out["future_pred"]):
                 logger.info(f"  forecast {d.strftime('%Y-%m-%d')}: {p:.2f}")
+    # print(outs)
