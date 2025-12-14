@@ -1,0 +1,65 @@
+<header xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+    <style>
+        .header {
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+        }
+
+        .header .title {
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .header .auth-buttons {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .header button, .header a {
+            background-color: #17a2b8;
+            color: #fff;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .header button:hover, .header a:hover {
+            background-color: #117a8b;
+        }
+
+        .header .username {
+            font-weight: bold;
+        }
+    </style>
+
+    <div class="header">
+        <div class="title">
+            Crypto Collectors
+        </div>
+
+        <div class="auth-buttons">
+            <!-- Show username if authenticated -->
+            <span sec:authorize="isAuthenticated()" class="username">
+                <i class="fa fa-user"></i> <span sec:authentication="name"></span>
+            </span>
+
+            <!-- Show login button if anonymous -->
+            <a sec:authorize="isAnonymous()" href="/login">Login</a>
+
+            <!-- Show logout button if authenticated -->
+            <form sec:authorize="isAuthenticated()" th:action="@{/logout}" method="post" style="display:inline;">
+                <button type="submit">Logout</button>
+            </form>
+        </div>
+    </div>
+</header>

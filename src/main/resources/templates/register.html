@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>Register</title>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #e0e0e0;
+            background-color: #121212;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .register-container {
+            background-color: #1e1e1e;
+            padding: 32px;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 24px;
+            font-size: 28px;
+            color: #ffffff;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 14px;
+            color: #aaaaaa;
+        }
+
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 8px 12px;
+            margin-bottom: 16px;
+            background-color: #1e1e1e;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-size: 14px;
+            transition: border 0.2s;
+        }
+
+        input[type="text"]:focus, input[type="password"]:focus {
+            border-color: #17a2b8;
+            outline: none;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #17a2b8;
+            color: white;
+            font-size: 14px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-bottom: 8px;
+        }
+
+        button:hover {
+            background-color: #117a8b;
+        }
+
+        .error-message {
+            color: #ff6b6b;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .footer {
+            margin-top: 8px;
+            text-align: center;
+            font-size: 13px;
+            color: #aaaaaa;
+        }
+
+        .footer a {
+            color: #17a2b8;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+<div class="register-container">
+    <h2>Register</h2>
+    <form th:action="@{/register}" method="post">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" placeholder="Username" required autofocus />
+
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" placeholder="Password" required />
+
+        <label for="repeatedPassword">Repeat Password</label>
+        <input type="password" id="repeatedPassword" name="repeatPassword" placeholder="Repeat Password" required />
+
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" placeholder="Name" required />
+
+        <label for="surname">Surname</label>
+        <input type="text" id="surname" name="surname" placeholder="Surname" required />
+
+        <div th:if="${error != null}" th:text="${error}" class="error-message"></div>
+
+        <button type="submit">Sign up</button>
+    </form>
+
+    <div class="footer">
+        Already have an account? <a th:href="@{/login}">Login here!</a>
+    </div>
+</div>
+
+</body>
+</html>
