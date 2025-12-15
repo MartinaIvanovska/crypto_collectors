@@ -48,15 +48,15 @@
         </div>
 
         <div class="auth-buttons">
-            <!-- Show username if authenticated -->
+
             <span sec:authorize="isAuthenticated()" class="username">
                 <i class="fa fa-user"></i> <span sec:authentication="name"></span>
             </span>
 
-            <!-- Show login button if anonymous -->
+
             <a sec:authorize="isAnonymous()" href="/login">Login</a>
 
-            <!-- Show logout button if authenticated -->
+
             <form sec:authorize="isAuthenticated()" th:action="@{/logout}" method="post" style="display:inline;">
                 <button type="submit">Logout</button>
             </form>
