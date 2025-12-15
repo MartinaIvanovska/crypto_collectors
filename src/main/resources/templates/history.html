@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title th:text="'History — ' + ${symbol}">History</title>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            margin: 0;
+            color: #e0e0e0;
+            background-color: #121212;
+        }
+
+        .page-container {
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h2 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #ffffff;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+            margin-bottom: 12px;
+        }
+
+        a.button {
+            text-decoration: none;
+            color: white;
+            background-color: #17a2b8;
+            padding: 5px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            transition: background 0.2s;
+            margin-left: 12px;
+        }
+
+        a.button:hover {
+            background-color: #117a8b;
+        }
+
+        .meta {
+            margin-bottom: 12px;
+            color: #aaaaaa;
+            font-size: 13px;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            max-width: 900px;
+            margin: 20px 0;
+            background-color: #1e1e1e;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        th, td {
+            padding: 8px 10px;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        th {
+            font-weight: 600;
+            background-color: #2c2c2c;
+            color: #e0e0e0;
+        }
+
+        td {
+            background-color: #1e1e1e;
+        }
+
+        tr:hover td {
+            background-color: #2a2a2a;
+        }
+
+        .pagination li {
+            margin: 0 4px;
+        }
+
+        .pagination a {
+            text-decoration: none;
+            color: #17a2b8;
+            padding: 5px 10px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .pagination a:hover {
+            background-color: #117a8b;
+            color: white;
+        }
+
+        .pagination .active a {
+            background-color: #17a2b8;
+            color: white;
+        }
+
+        .pagination .disabled a {
+            color: #555;
+            border-color: #555;
+            pointer-events: none;
+        }
+
+        .pager {
+            margin-top: 16px;
+            display: flex;
+            justify-content: center;
+        }
+        .pagination {
+            list-style: none;
+            display: flex;
+            padding: 0;
+        }
+        #chartType {
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            outline: none;
+            transition: background 0.2s, border 0.2s;
+        }
+
+        #chartType:hover, #chartType:focus {
+            background-color: #2a2a2a;
+            border-color: #17a2b8;
+        }
+
+
+    </style>
+</head>
+<body>
+
+<div th:replace="fragments/header :: header"></div>
+
+<div class="page-container">
+
+    <!-- Title and Back button -->
+    <div style="display: flex; align-items: baseline;">
+        <h2 th:text="${symbol}">SYMBOL</h2>
+        <a th:href="@{/cryptos}" class="button">Back to List</a>
+    </div>
+
+    <div class="meta" th:if="${latest != null}">
+        Latest: <strong th:text="${latest.close}">0.00</strong>
+        (date: <span th:text="${latest.date}">YYYY-MM-DD</span>)
+    </div>
+
+    <div class="meta">
+        Showing page <span th:text="${page.number + 1}">1</span> of <span th:text="${page.totalPages}">1</span>
+    </div>
+
+
+    <div id="candlestick-chart" style="width: 100%; max-width: 900px; height: 600px; margin: 20px 0;"></div>
+
+    <div style="margin-bottom: 12px;">
+        <label for="chartType" style="margin-right: 8px;">Chart type:</label>
+        <select id="chartType">
+            <option value="candlestick" selected>Candlestick</option>
+            <option value="line">Line</option>
+            <option value="bar">Bar</option>
+        </select>
+    </div>
+
+
+
+    <table>
+        <thead>
+        <tr>
+            <th>Date</th>
+            <th>Open</th>
+            <th>High</th>
+            <th>Low</th>
+            <th>Close</th>
+            <th>Volume</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="d : ${page.content}">
+            <td th:text="${d.date}">YYYY-MM-DD</td>
+            <td th:text="${d.open}">0.00</td>
+            <td th:text="${d.high}">0.00</td>
+            <td th:text="${d.low}">0.00</td>
+            <td th:text="${d.close}">0.00</td>
+            <td th:text="${d.volume}">0</td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(page.content)}">
+            <td colspan="6" class="meta">No history for this symbol.</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <div th:replace="fragments/paging :: pageSection(${page})"></div>
+
+</div>
+
+
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script>
+    async function drawChart(symbol, type = 'candlestick') {
+        const res = await fetch(`/api/coins/${symbol}/history/candlestick?limit=100`);
+        const data = await res.json();
+
+        let trace;
+
+        if (type === 'candlestick') {
+            trace = {
+                x: data.dates,
+                open: data.open,
+                high: data.high,
+                low: data.low,
+                close: data.close,
+                type: 'candlestick',
+                increasing: { line: { color: '#17a2b8' } },
+                decreasing: { line: { color: '#d9534f' } },
+                name: symbol
+            };
+        } else if (type === 'line') {
+            trace = {
+                x: data.dates,
+                y: data.close,
+                type: 'scatter',
+                mode: 'lines+markers',
+                line: { color: '#17a2b8' },
+                marker: { color: '#17a2b8' },
+                name: symbol
+            };
+        } else if (type === 'bar') {
+            trace = {
+                x: data.dates,
+                y: data.volume,
+                type: 'bar',
+                marker: { color: '#17a2b8' },
+                name: 'Volume'
+            };
+        }
+
+        const layout = {
+            title: { text: `${symbol} ${type.charAt(0).toUpperCase() + type.slice(1)} Chart`, font: { color: '#e0e0e0' } },
+            xaxis: {
+                title: { text: 'Date', font: { color: '#e0e0e0' } },
+                type: 'category',
+                tickfont: { color: '#e0e0e0' },
+                gridcolor: '#444'
+            },
+            yaxis: {
+                title: { text: type === 'bar' ? 'Volume' : 'Price (USD)', font: { color: '#e0e0e0' } },
+                tickfont: { color: '#e0e0e0' },
+                gridcolor: '#444'
+            },
+            margin: { t: 40, r: 40, b: 40, l: 40 },
+            plot_bgcolor: '#1e1e1e',
+            paper_bgcolor: '#121212',
+            font: { color: '#e0e0e0' }
+        };
+
+        Plotly.newPlot('candlestick-chart', [trace], layout);
+    }
+
+
+    const symbol = '[[${symbol}]]';
+    drawChart(symbol);
+
+    document.getElementById('chartType').addEventListener('change', function() {
+        drawChart(symbol, this.value);
+    });
+
+
+</script>
+
+</body>
+</html>
