@@ -7,6 +7,8 @@ import sqlite3
 import logging
 import numpy as np
 import pandas as pd
+import csv
+
 from math import sqrt
 from joblib import dump, load
 
@@ -310,6 +312,7 @@ def run_pipeline(symbols, lookbacks=DEFAULT_LOOKBACKS, forecast_days=DEFAULT_FOR
 
 #%% Example usage
 if __name__ == "__main__":
+
     ensure_predictions_table()
     TEST_COINS = ["BTC-USD", "ETH-USD"]
 
@@ -328,3 +331,31 @@ if __name__ == "__main__":
             for d, p in zip(out["future_dates"], out["future_pred"]):
                 logger.info(f"  forecast {d.strftime('%Y-%m-%d')}: {p:.2f}")
     # print(outs)
+
+    # Write forecasts to CSV file
+    if outs:
+        csv_filename = f"forecasts.csv"
+
+        with open(csv_filename, 'w', newline='') as csvfile:
+            fieldnames = ['symbol', 'lookback', 'forecast_date', 'forecasted_price']
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+            writer.writeheader()
+
+            for out in outs:
+                if out:
+                    symbol = out['symbol']
+                    lookback = out['lookback']
+                    future_dates = out['future_dates']
+                    future_pred = out['future_pred']
+
+                    # Write each forecast row
+                    for date, price in zip(future_dates, future_pred):
+                        writer.writerow({
+                            'symbol': symbol,
+                            'lookback': lookback,
+                            'forecast_date': date.strftime('%Y-%m-%d'),
+                            'forecasted_price': f"{price:.2f}"
+                        })
+
+        logger.info(f"Forecasts written to {csv_filename}")
