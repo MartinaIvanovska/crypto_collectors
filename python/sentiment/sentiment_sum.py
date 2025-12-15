@@ -41,12 +41,13 @@ def compute_sentiment_sum(csv_path, keyword):
 
             if "positive" in s:
                 total_sum += 1
-                print("→ sentiment +1")
+                print(f"→ sentiment +1, total_sum now {total_sum}")
             elif "negative" in s:
                 total_sum -= 1
-                print("→ sentiment -1")
+                print(f"→ sentiment -1, total_sum now {total_sum}")
             elif "neutral" in s:
-                print("→ sentiment 0")
+                print(f"→ sentiment 0, total_sum now {total_sum}")
+
             else:
                 print("⚠️ sentiment NOT recognized")
 
@@ -58,4 +59,4 @@ if __name__ == "__main__":
     result = compute_sentiment_sum(CSV_FILE_PATH1, KEYWORD)
     result2 = compute_sentiment_sum(CSV_FILE_PATH2, KEYWORD)
     print("\nFINAL TOTAL1:", result)
-    print("\nFINAL TOTAL2:", result)
+    print("\nFINAL TOTAL2:", result2)
