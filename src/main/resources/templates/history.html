@@ -4,15 +4,13 @@
     <meta charset="UTF-8" />
     <title th:text="'History — ' + ${symbol}">History</title>
     <style>
-
         body {
             font-family: Arial, Helvetica, sans-serif;
-            margin: 0; /* Let header handle spacing */
+            margin: 0;
             color: #e0e0e0;
             background-color: #121212;
         }
 
-        /* wrapper for page content */
         .page-container {
             padding: 32px;
             display: flex;
@@ -79,6 +77,7 @@
         tr:hover td {
             background-color: #2a2a2a;
         }
+
         .pagination li {
             margin: 0 4px;
         }
@@ -107,12 +106,12 @@
             border-color: #555;
             pointer-events: none;
         }
+
         .pager {
             margin-top: 16px;
             display: flex;
             justify-content: center;
         }
-
         .pagination {
             list-style: none;
             display: flex;
@@ -123,9 +122,7 @@
 </head>
 <body>
 
-
 <div th:replace="fragments/header :: header"></div>
-
 
 <div class="page-container">
 
@@ -135,18 +132,19 @@
         <a th:href="@{/cryptos}" class="button">Back to List</a>
     </div>
 
-
     <div class="meta" th:if="${latest != null}">
         Latest: <strong th:text="${latest.close}">0.00</strong>
         (date: <span th:text="${latest.date}">YYYY-MM-DD</span>)
     </div>
 
-
     <div class="meta">
         Showing page <span th:text="${page.number + 1}">1</span> of <span th:text="${page.totalPages}">1</span>
     </div>
 
+    <!-- Candlestick Chart -->
+    <div id="candlestick-chart" style="width: 100%; max-width: 900px; height: 500px; margin: 20px 0;"></div>
 
+    <!-- Data Table -->
     <table>
         <thead>
         <tr>
@@ -173,9 +171,53 @@
         </tbody>
     </table>
 
-
     <div th:replace="fragments/paging :: pageSection(${page})"></div>
 
 </div>
+
+<!-- Plotly Script -->
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script>
+    async function drawCandlestick(symbol) {
+        const res = await fetch(`/api/coins/${symbol}/history/candlestick?limit=100`);
+        const data = await res.json();
+
+        const trace = {
+            x: data.dates,
+            open: data.open,
+            high: data.high,
+            low: data.low,
+            close: data.close,
+            type: 'candlestick',
+            name: symbol,
+        };
+
+        const layout = {
+            title: { text: `${symbol} Candlestick Chart`, font: { color: '#e0e0e0' } },
+            xaxis: {
+                title: { text: 'Date', font: { color: '#e0e0e0' } },
+                type: 'category',
+                tickfont: { color: '#e0e0e0' },
+                gridcolor: '#444'
+            },
+            yaxis: {
+                title: { text: 'Price (USD)', font: { color: '#e0e0e0' } },
+                tickfont: { color: '#e0e0e0' },
+                gridcolor: '#444'
+            },
+            margin: { t: 40, r: 40, b: 40, l: 40 },
+            plot_bgcolor: '#1e1e1e',
+            paper_bgcolor: '#121212',
+            font: { color: '#e0e0e0' }
+        };
+
+
+        Plotly.newPlot('candlestick-chart', [trace], layout);
+    }
+
+    // Draw chart using Thymeleaf variable for symbol
+    drawCandlestick('[[${symbol}]]');
+</script>
+
 </body>
 </html>

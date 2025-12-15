@@ -6,41 +6,48 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/coins")
 public class CryptoControllerApi {
 
     @Autowired
-    private CryptoService service;
+    private CryptoService cryptoService;
 
-    // GET /api/coins?page=0&size=50&sort=volume,desc
-    @GetMapping
-    public Page<LatestDto> listLatest(@RequestParam(defaultValue = "0") int page,
-                                      @RequestParam(defaultValue = "50") int size,
-                                      @RequestParam(required = false) String sort) {
-        Sort s = Sort.by("symbol").ascending();
-        if (sort != null && !sort.isBlank()) {
-            String[] parts = sort.split(",");
-            String prop = parts[0];
-            Sort.Direction dir = parts.length > 1 && parts[1].equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
-            s = Sort.by(dir, prop);
-        }
-        Pageable pageable = PageRequest.of(page, size, s);
-        return service.getLatestPerSymbol(pageable);
-    }
+    /**
+     * Returns historical OHLCV data for a symbol, suitable for Plotly candlestick chart.
+     *
+     * Example: GET /api/coins/KERNEL-USD/history/candlestick?limit=100
+     */
+    @GetMapping("/{symbol}/history/candlestick")
+    public Map<String, Object> getCandlestickHistory(
+            @PathVariable String symbol,
+            @RequestParam(defaultValue = "100") int limit) {
 
-    // GET /api/coins/{symbol}
-    @GetMapping("/{symbol}")
-    public Daily latestForSymbol(@PathVariable String symbol) {
-        return service.getLatestForSymbol(symbol);
-    }
+        // Sort by date ascending (oldest first)
+        Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.ASC, "date"));
+        Page<Daily> historyPage = cryptoService.getHistory(symbol, pageable);
 
-    // GET /api/coins/{symbol}/history?page=0&size=100
-    @GetMapping("/{symbol}/history")
-    public Page<Daily> history(@PathVariable String symbol,
-                               @RequestParam(defaultValue = "0") int page,
-                               @RequestParam(defaultValue = "100") int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "date"));
-        return service.getHistory(symbol, pageable);
+        // Convert data to lists
+        List<String> dates = historyPage.stream().map(d -> d.getDate().toString()).toList();
+        List<Double> open = historyPage.stream().map(Daily::getOpen).toList();
+        List<Double> high = historyPage.stream().map(Daily::getHigh).toList();
+        List<Double> low = historyPage.stream().map(Daily::getLow).toList();
+        List<Double> close = historyPage.stream().map(Daily::getClose).toList();
+        List<Long> volume = historyPage.stream().map(Daily::getVolume).toList();
+
+        // Prepare JSON response
+        Map<String, Object> response = new HashMap<>();
+        response.put("dates", dates);
+        response.put("open", open);
+        response.put("high", high);
+        response.put("low", low);
+        response.put("close", close);
+        response.put("volume", volume);
+
+        return response;
     }
 }
