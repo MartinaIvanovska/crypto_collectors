@@ -29,10 +29,15 @@ public class CryptoController {
     public String listLatest(
             @RequestParam(value = "pageNum", defaultValue = "1") int pageNum,
             @RequestParam(value = "pageSize", defaultValue = "20") int pageSize,
+            @RequestParam(value = "prop", defaultValue = "symbol") String prop,
             Model model) {
+        Pageable pageable = null;
+        if (prop.equals("symbol")){
+            pageable = PageRequest.of(pageNum - 1, pageSize, Sort.by(prop).ascending());
 
-
-        Pageable pageable = PageRequest.of(pageNum - 1, pageSize, Sort.by("symbol").ascending());
+        }else{
+            pageable = PageRequest.of(pageNum - 1, pageSize, Sort.by(prop).descending());
+        }
         Page<LatestDto> page = cryptoService.getLatestPerSymbol(pageable);
         model.addAttribute("page", page);
 

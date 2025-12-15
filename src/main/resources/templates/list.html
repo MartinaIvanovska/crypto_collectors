@@ -114,6 +114,32 @@
             pointer-events: none;
         }
 
+        .sort-bar {
+            margin-bottom: 16px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .sort-button {
+            text-decoration: none;
+            color: white;
+            background-color: #2c2c2c;
+            padding: 6px 14px;
+            border-radius: 4px;
+            font-size: 13px;
+            border: 1px solid #444;
+            transition: background 0.2s;
+        }
+
+        .sort-button:hover {
+            background-color: #117a8b;
+        }
+
+        .sort-button.active {
+            background-color: #17a2b8;
+            border-color: #17a2b8;
+        }
+
     </style>
 </head>
 
@@ -126,6 +152,20 @@
 <div class="page-container">
 
     <h2>Cryptocurrency Dashboard</h2>
+
+    <div class="sort-bar">
+        <a th:href="@{/cryptos(prop='symbol', pageNum=1, pageSize=${page.size})}"
+           class="sort-button"
+           th:classappend="${param.prop == null || param.prop[0] == 'symbol'} ? 'active' : ''">
+            Sort by Symbol
+        </a>
+
+        <a th:href="@{/cryptos(prop='volume', pageNum=1, pageSize=${page.size})}"
+           class="sort-button"
+           th:classappend="${param.prop != null && param.prop[0] == 'volume'} ? 'active' : ''">
+            Sort by Volume
+        </a>
+    </div>
 
     <div class="meta">
         Showing page
