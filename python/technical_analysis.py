@@ -2,6 +2,8 @@ import os
 import sqlite3
 import pandas as pd
 import ta
+from multiprocessing import Pool, cpu_count
+import time
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "..", "data", "crypto_daily.db")
@@ -174,40 +176,50 @@ def resample_timeframe(df, rule, label):
     r["timeframe"] = label
     return r
 
-def compute_for_all():
-    """
-    Batch analysis for all symbols and three timeframes
-    Returns DataFrame with indicators and signals
-    """
-    df = load_data()
+def process_symbol(args):
+    symbol, g = args
+
+    g = g.set_index("date").sort_index()
+
     results = []
 
-    for symbol, g in df.groupby("symbol"):
-        g = g.copy()
-        g.set_index("date", inplace=True)
+    # daily
+    daily = add_indicators(g.copy())
+    daily["timeframe"] = "1D"
+    daily["signal"] = daily.apply(generate_signal, axis=1)
+    daily["symbol"] = symbol
+    results.append(daily)
 
-        #daily
-        daily = add_indicators(g.copy())
-        daily["timeframe"] = "1D"
-        daily["signal"] = daily.apply(generate_signal, axis=1)
-        daily["symbol"] = symbol
-        results.append(daily)
+    # weekly
+    weekly_raw = resample_timeframe(g, "W", "1W")
+    weekly = add_indicators(weekly_raw)
+    weekly["signal"] = weekly.apply(generate_signal, axis=1)
+    weekly["symbol"] = symbol
+    results.append(weekly)
 
-        #weekly
-        weekly_raw = resample_timeframe(g, "W", "1W")
-        weekly = add_indicators(weekly_raw.copy())
-        weekly["signal"] = weekly.apply(generate_signal, axis=1)
-        weekly["symbol"] = symbol
-        results.append(weekly)
+    # monthly
+    monthly_raw = resample_timeframe(g, "ME", "1M")
+    monthly = add_indicators(monthly_raw)
+    monthly["signal"] = monthly.apply(generate_signal, axis=1)
+    monthly["symbol"] = symbol
+    results.append(monthly)
 
-        #monthly
-        monthly_raw = resample_timeframe(g, "ME", "1M")
-        monthly = add_indicators(monthly_raw.copy())
-        monthly["signal"] = monthly.apply(generate_signal, axis=1)
-        monthly["symbol"] = symbol
-        results.append(monthly)
+    return pd.concat(results)
 
-    all_df = pd.concat(results)
+def compute_for_all():
+    """
+        Batch analysis for all symbols and three timeframes
+        Returns DataFrame with indicators and signals
+    """
+    df = load_data()
+
+    #prepare list (symbol, group_df)  for multiprocessing
+    groups = [(symbol, g) for symbol, g in df.groupby("symbol")]
+
+    with Pool(processes=3) as pool:
+        parts = pool.map(process_symbol, groups)
+
+    all_df = pd.concat(parts)
     all_df.reset_index(inplace=True)
     print(all_df.head())
     return all_df
@@ -215,8 +227,10 @@ def compute_for_all():
 def save_to_db(all_df):
     conn = sqlite3.connect(DB_PATH)
 
+    conn.execute(f"DROP TABLE IF EXISTS {TARGET_TABLE}")
+
     create_sql = f"""
-    CREATE TABLE IF NOT EXISTS {TARGET_TABLE} (
+    CREATE TABLE {TARGET_TABLE} (
         symbol TEXT,
         date TEXT,
         timeframe TEXT,
@@ -251,11 +265,28 @@ def save_to_db(all_df):
     conn.close()
 
 
+# def main():
+#     print ("Loading data from:", DB_PATH)
+#     all_df = compute_for_all()
+#     save_to_db(all_df)
+#     print("Done. Indicators saved to table:", TARGET_TABLE)
+
 def main():
-    print ("Loading data from:", DB_PATH)
+    start_total = time.time()
+    print("Loading data from:", DB_PATH)
+
+    load_start = time.time()
     all_df = compute_for_all()
+    print(f"  compute_for_all took {time.time() - load_start:.2f} seconds")
+
+    print("Saving to database...")
+    save_start = time.time()
     save_to_db(all_df)
-    print("Done. Indicators saved to table:", TARGET_TABLE)
+    print(f"  save_to_db took {time.time() - save_start:.2f} seconds")
+
+    total_time = time.time() - start_total
+    print(f"Done! Total pipeline: {total_time:.2f} seconds")
+    print(f"Indicators saved to table: {TARGET_TABLE}")
 
 if __name__ == "__main__":
     main()
