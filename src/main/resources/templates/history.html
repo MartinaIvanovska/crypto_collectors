@@ -117,6 +117,22 @@
             display: flex;
             padding: 0;
         }
+        #chartType {
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            outline: none;
+            transition: background 0.2s, border 0.2s;
+        }
+
+        #chartType:hover, #chartType:focus {
+            background-color: #2a2a2a;
+            border-color: #17a2b8;
+        }
+
 
     </style>
 </head>
@@ -141,10 +157,20 @@
         Showing page <span th:text="${page.number + 1}">1</span> of <span th:text="${page.totalPages}">1</span>
     </div>
 
-    <!-- Candlestick Chart -->
-    <div id="candlestick-chart" style="width: 100%; max-width: 900px; height: 500px; margin: 20px 0;"></div>
 
-    <!-- Data Table -->
+    <div id="candlestick-chart" style="width: 100%; max-width: 900px; height: 600px; margin: 20px 0;"></div>
+
+    <div style="margin-bottom: 12px;">
+        <label for="chartType" style="margin-right: 8px;">Chart type:</label>
+        <select id="chartType">
+            <option value="candlestick" selected>Candlestick</option>
+            <option value="line">Line</option>
+            <option value="bar">Bar</option>
+        </select>
+    </div>
+
+
+
     <table>
         <thead>
         <tr>
@@ -175,25 +201,49 @@
 
 </div>
 
-<!-- Plotly Script -->
+
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 <script>
-    async function drawCandlestick(symbol) {
+    async function drawChart(symbol, type = 'candlestick') {
         const res = await fetch(`/api/coins/${symbol}/history/candlestick?limit=100`);
         const data = await res.json();
 
-        const trace = {
-            x: data.dates,
-            open: data.open,
-            high: data.high,
-            low: data.low,
-            close: data.close,
-            type: 'candlestick',
-            name: symbol,
-        };
+        let trace;
+
+        if (type === 'candlestick') {
+            trace = {
+                x: data.dates,
+                open: data.open,
+                high: data.high,
+                low: data.low,
+                close: data.close,
+                type: 'candlestick',
+                increasing: { line: { color: '#17a2b8' } },
+                decreasing: { line: { color: '#d9534f' } },
+                name: symbol
+            };
+        } else if (type === 'line') {
+            trace = {
+                x: data.dates,
+                y: data.close,
+                type: 'scatter',
+                mode: 'lines+markers',
+                line: { color: '#17a2b8' },
+                marker: { color: '#17a2b8' },
+                name: symbol
+            };
+        } else if (type === 'bar') {
+            trace = {
+                x: data.dates,
+                y: data.volume,
+                type: 'bar',
+                marker: { color: '#17a2b8' },
+                name: 'Volume'
+            };
+        }
 
         const layout = {
-            title: { text: `${symbol} Candlestick Chart`, font: { color: '#e0e0e0' } },
+            title: { text: `${symbol} ${type.charAt(0).toUpperCase() + type.slice(1)} Chart`, font: { color: '#e0e0e0' } },
             xaxis: {
                 title: { text: 'Date', font: { color: '#e0e0e0' } },
                 type: 'category',
@@ -201,7 +251,7 @@
                 gridcolor: '#444'
             },
             yaxis: {
-                title: { text: 'Price (USD)', font: { color: '#e0e0e0' } },
+                title: { text: type === 'bar' ? 'Volume' : 'Price (USD)', font: { color: '#e0e0e0' } },
                 tickfont: { color: '#e0e0e0' },
                 gridcolor: '#444'
             },
@@ -211,12 +261,18 @@
             font: { color: '#e0e0e0' }
         };
 
-
         Plotly.newPlot('candlestick-chart', [trace], layout);
     }
 
-    // Draw chart using Thymeleaf variable for symbol
-    drawCandlestick('[[${symbol}]]');
+
+    const symbol = '[[${symbol}]]';
+    drawChart(symbol);
+
+    document.getElementById('chartType').addEventListener('change', function() {
+        drawChart(symbol, this.value);
+    });
+
+
 </script>
 
 </body>
