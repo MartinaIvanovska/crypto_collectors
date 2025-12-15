@@ -3,7 +3,6 @@ import sqlite3
 import pandas as pd
 import ta
 from multiprocessing import Pool, cpu_count
-import time
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "..", "data", "crypto_daily.db")
@@ -74,22 +73,24 @@ def generate_signal(row):
     Generates BUY/SELL/HOLD signal using technical indicators:
     RSI, MACD, STOCH, ADX, CCI, SMA20, EMA20, WMA20, BollingerBands, vol_sma20
     """
-    #Default values
-    close = row.get("close", 0)
 
-    rsi = row.get("rsi", 50)
-    macd = row.get("macd", 0)
-    stoch = row.get("stoch", 50)
-    adx = row.get("adx", 0)
-    cci = row.get("cci", 0)
+    def safe_get(val, default):
+        return val if pd.notna(val) else default
 
-    sma20 = row.get("sma20", close)
-    ema20 = row.get("ema20", close)
-    wma20 = row.get("wma20", close)
-    bb_high = row.get("bb_high", float("inf"))
-    bb_low = row.get("bb_low", float("-inf"))
-    vol_sma20 = row.get("vol_sma20", 0)
-    volume = row.get("volume", 0)
+    # Default values
+    close = safe_get(row.get("close"), 0)
+    rsi = safe_get(row.get("rsi"), 50)
+    macd = safe_get(row.get("macd"), 0)
+    stoch = safe_get(row.get("stoch"), 50)
+    adx = safe_get(row.get("adx"), 0)
+    cci = safe_get(row.get("cci"), 0)
+    sma20 = safe_get(row.get("sma20"), close)
+    ema20 = safe_get(row.get("ema20"), close)
+    wma20 = safe_get(row.get("wma20"), close)
+    bb_high = safe_get(row.get("bb_high"), close * 1.1)
+    bb_low = safe_get(row.get("bb_low"), close * 0.9)
+    vol_sma20 = safe_get(row.get("vol_sma20"), 0)
+    volume = safe_get(row.get("volume"), 0)
 
     buy_score = 0
     sell_score = 0
@@ -137,15 +138,15 @@ def generate_signal(row):
     if close < sma20 and close < ema20 and close < wma20:
         sell_score += 1
 
-    #Bollinger bands
+    # Bollinger bands
     if close < bb_low:
         buy_score += 2
-    elif close < (sma20 or close):
+    elif close < sma20:
         buy_score += 1
 
     if close > bb_high:
         sell_score += 2
-    elif close > (sma20 or close):
+    elif close > sma20:
         sell_score += 1
 
     #Volume signal
@@ -208,8 +209,8 @@ def process_symbol(args):
 
 def compute_for_all():
     """
-        Batch analysis for all symbols and three timeframes
-        Returns DataFrame with indicators and signals
+    Batch analysis for all symbols and three timeframes
+    Returns DataFrame with indicators and signals
     """
     df = load_data()
 
@@ -265,28 +266,13 @@ def save_to_db(all_df):
     conn.close()
 
 
-# def main():
-#     print ("Loading data from:", DB_PATH)
-#     all_df = compute_for_all()
-#     save_to_db(all_df)
-#     print("Done. Indicators saved to table:", TARGET_TABLE)
-
 def main():
-    start_total = time.time()
-    print("Loading data from:", DB_PATH)
-
-    load_start = time.time()
+    print ("Loading data from:", DB_PATH)
     all_df = compute_for_all()
-    print(f"  compute_for_all took {time.time() - load_start:.2f} seconds")
-
     print("Saving to database...")
-    save_start = time.time()
     save_to_db(all_df)
-    print(f"  save_to_db took {time.time() - save_start:.2f} seconds")
+    print("Done. Indicators saved to table:", TARGET_TABLE)
 
-    total_time = time.time() - start_total
-    print(f"Done! Total pipeline: {total_time:.2f} seconds")
-    print(f"Indicators saved to table: {TARGET_TABLE}")
 
 if __name__ == "__main__":
     main()
