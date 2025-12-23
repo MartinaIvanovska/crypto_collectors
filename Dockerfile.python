@@ -1,0 +1,22 @@
+FROM python:3.9-slim
+
+WORKDIR /app
+
+# Install system dependencies for scipy/numpy if needed
+RUN apt-get update && apt-get install -y gcc
+
+# Copy requirements and install
+COPY python/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy source code
+COPY python/ .
+# Copy data/models structure if necessary, though volumes are better
+# Ensure the sentiment folder is copied
+COPY python/sentiment ./sentiment
+
+# Expose port
+EXPOSE 8000
+
+# Run the API
+CMD ["python", "api.py"]
