@@ -190,7 +190,7 @@ def get_sentiment_onchain(symbol: str, keyword: str = Query(..., description="e.
             "onchain_score": result['onchain_score'],
             "sentiment_score": result['sentiment_score'],
             "metrics": result['scaled_metrics'],  # or metrics_dict for raw values
-            "whale_alerts": whales
+            "whale_alerts": []
         }
     except Exception as e:
         print(f"Error: {e}")
