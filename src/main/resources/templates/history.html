@@ -5,135 +5,144 @@
     <title th:text="'History — ' + ${symbol}">History</title>
     <style>
         body {
-            font-family: Arial, Helvetica, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             color: #e0e0e0;
             background-color: #121212;
         }
 
+        /* --- Layout & Containers --- */
         .page-container {
             padding: 32px;
+            max-width: 1400px; /* Increased width to fit dashboard */
+            margin: 0 auto;
             display: flex;
             flex-direction: column;
-            align-items: center;
+        }
+
+        /* Dashboard Grid System */
+        .dashboard-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            width: 100%;
+            margin-bottom: 24px;
+        }
+
+        .chart-col {
+            flex: 2;
+            min-width: 600px;
+        }
+
+        .metrics-col {
+            flex: 1;
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Card Styling */
+        .card {
+            background-color: #1e1e1e;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            border: 1px solid #333;
         }
 
         h2 {
             font-size: 28px;
             font-weight: 700;
             color: #ffffff;
-            text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
-            margin-bottom: 12px;
+            margin: 0 0 12px 0;
+        }
+        h3 {
+            font-size: 18px;
+            margin-top: 0;
+            color: #17a2b8;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
         }
 
+        /* --- Buttons & Inputs --- */
         a.button {
             text-decoration: none;
             color: white;
             background-color: #17a2b8;
-            padding: 5px 12px;
+            padding: 6px 14px;
             border-radius: 4px;
-            font-size: 13px;
+            font-size: 14px;
             transition: background 0.2s;
             margin-left: 12px;
+            display: inline-block;
+        }
+        a.button:hover { background-color: #117a8b; }
+
+        select#chartType {
+            background-color: #2c2c2c;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            padding: 6px;
+            border-radius: 4px;
+            outline: none;
         }
 
-        a.button:hover {
-            background-color: #117a8b;
+        /* --- Data Grids & Tables --- */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
         }
 
-        .meta {
-            margin-bottom: 12px;
-            color: #aaaaaa;
-            font-size: 13px;
+        .metric-item {
+            background-color: #252525;
+            padding: 10px;
+            border-radius: 6px;
         }
+        .metric-label { font-size: 12px; color: #aaa; display: block; margin-bottom: 4px; }
+        .metric-value { font-size: 16px; font-weight: 600; color: #fff; }
 
-        table {
+        /* History Table */
+        table.history-table {
             border-collapse: collapse;
             width: 100%;
-            max-width: 900px;
-            margin: 20px 0;
             background-color: #1e1e1e;
             border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            margin-top: 20px;
         }
+        table.history-table th, table.history-table td { padding: 10px; text-align: left; }
+        table.history-table th { background-color: #2c2c2c; font-weight: 600; }
+        table.history-table tr:hover td { background-color: #2a2a2a; }
 
-        th, td {
-            padding: 8px 10px;
-            text-align: left;
-            font-size: 14px;
+        /* --- Technical Tabs --- */
+        .tech-tabs { display: flex; gap: 10px; margin-bottom: 10px; }
+        .tech-tab {
+            background: #2c2c2c; border: none; color: #aaa; padding: 6px 12px;
+            cursor: pointer; border-radius: 4px; font-size: 13px;
         }
+        .tech-tab.active { background-color: #17a2b8; color: white; }
+        .tech-content { display: none; }
+        .tech-content.active { display: block; }
+        .signal-badge {
+            display: inline-block; padding: 2px 8px; border-radius: 4px;
+            font-size: 12px; font-weight: bold;
+        }
+        .signal-buy { background-color: rgba(40, 167, 69, 0.2); color: #28a745; }
+        .signal-sell { background-color: rgba(220, 53, 69, 0.2); color: #dc3545; }
+        .signal-neutral { background-color: rgba(255, 193, 7, 0.2); color: #ffc107; }
 
-        th {
-            font-weight: 600;
-            background-color: #2c2c2c;
-            color: #e0e0e0;
-        }
+        /* Helpers */
+        .loading-text { color: #555; font-style: italic; font-size: 13px; }
+        .meta { color: #888; font-size: 13px; margin-bottom: 15px; }
 
-        td {
-            background-color: #1e1e1e;
+        /* Responsive Fix */
+        @media (max-width: 900px) {
+            .dashboard-row { flex-direction: column; }
+            .chart-col, .metrics-col { min-width: 100%; }
         }
-
-        tr:hover td {
-            background-color: #2a2a2a;
-        }
-
-        .pagination li {
-            margin: 0 4px;
-        }
-
-        .pagination a {
-            text-decoration: none;
-            color: #17a2b8;
-            padding: 5px 10px;
-            border: 1px solid #444;
-            border-radius: 4px;
-            transition: background 0.2s;
-        }
-
-        .pagination a:hover {
-            background-color: #117a8b;
-            color: white;
-        }
-
-        .pagination .active a {
-            background-color: #17a2b8;
-            color: white;
-        }
-
-        .pagination .disabled a {
-            color: #555;
-            border-color: #555;
-            pointer-events: none;
-        }
-
-        .pager {
-            margin-top: 16px;
-            display: flex;
-            justify-content: center;
-        }
-        .pagination {
-            list-style: none;
-            display: flex;
-            padding: 0;
-        }
-        #chartType {
-            background-color: #1e1e1e;
-            color: #e0e0e0;
-            border: 1px solid #444;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 14px;
-            outline: none;
-            transition: background 0.2s, border 0.2s;
-        }
-
-        #chartType:hover, #chartType:focus {
-            background-color: #2a2a2a;
-            border-color: #17a2b8;
-        }
-
-
     </style>
 </head>
 <body>
@@ -142,136 +151,370 @@
 
 <div class="page-container">
 
-    <!-- Title and Back button -->
-    <div style="display: flex; align-items: baseline;">
-        <h2 th:text="${symbol}">SYMBOL</h2>
-        <a th:href="@{/cryptos}" class="button">Back to List</a>
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+        <div style="display: flex; align-items: baseline;">
+            <h2 th:text="${symbol}">SYMBOL</h2>
+            <a th:href="@{/cryptos}" class="button">Back to List</a>
+        </div>
+        <div class="meta" th:if="${latest != null}">
+            Latest Close: <strong th:text="${latest.close}" style="color:#fff; font-size: 1.2em;">0.00</strong>
+            <span style="margin-left:8px;">(Date: <span th:text="${latest.date}"></span>)</span>
+        </div>
     </div>
 
-    <div class="meta" th:if="${latest != null}">
-        Latest: <strong th:text="${latest.close}">0.00</strong>
-        (date: <span th:text="${latest.date}">YYYY-MM-DD</span>)
+    <div class="dashboard-row">
+
+        <div class="chart-col">
+            <div class="card" style="margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h3>Price History</h3>
+                    <div>
+                        <label for="chartType" style="font-size: 13px; margin-right: 6px;">Type:</label>
+                        <select id="chartType">
+                            <option value="candlestick" selected>Candlestick</option>
+                            <option value="line">Line</option>
+                            <option value="bar">Bar</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="candlestick-chart" style="width: 100%; height: 500px;"></div>
+            </div>
+
+            <div class="card">
+                <h3>LSTM AI Price Forecast (Next 30 Days)</h3>
+                <div id="forecast-container">
+                    <div id="forecast-chart" style="width: 100%; height: 400px;"></div>
+                    <p id="forecast-loading" class="loading-text">Loading forecast model...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="metrics-col">
+
+            <div class="card">
+                <h3>On-Chain Metrics</h3>
+                <div id="onchain-container">
+                    <p id="onchain-loading" class="loading-text">Fetching blockchain data...</p>
+                    <div id="onchain-data" class="metrics-grid" style="display: none;">
+                        </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Technical Analysis</h3>
+
+                <div class="tech-tabs">
+                    <button class="tech-tab active" onclick="switchTab('daily')">Daily</button>
+                    <button class="tech-tab" onclick="switchTab('weekly')">Weekly</button>
+                    <button class="tech-tab" onclick="switchTab('monthly')">Monthly</button>
+                </div>
+
+                <div id="tech-daily" class="tech-content active">
+                    <p class="loading-text">Loading daily signals...</p>
+                </div>
+                <div id="tech-weekly" class="tech-content">
+                    <p class="loading-text">Loading weekly signals...</p>
+                </div>
+                <div id="tech-monthly" class="tech-content">
+                    <p class="loading-text">Loading monthly signals...</p>
+                </div>
+            </div>
+
+        </div>
     </div>
 
-    <div class="meta">
-        Showing page <span th:text="${page.number + 1}">1</span> of <span th:text="${page.totalPages}">1</span>
+    <div class="card" style="width: 100%; margin-top: 20px;">
+        <h3>Historical Data Log</h3>
+        <div class="meta">
+            Page <span th:text="${page.number + 1}">1</span> of <span th:text="${page.totalPages}">1</span>
+        </div>
+        <table class="history-table">
+            <thead>
+            <tr>
+                <th>Date</th>
+                <th>Open</th>
+                <th>High</th>
+                <th>Low</th>
+                <th>Close</th>
+                <th>Volume</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="d : ${page.content}">
+                <td th:text="${d.date}"></td>
+                <td th:text="${d.open}"></td>
+                <td th:text="${d.high}"></td>
+                <td th:text="${d.low}"></td>
+                <td th:text="${d.close}"></td>
+                <td th:text="${d.volume}"></td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(page.content)}">
+                <td colspan="6" style="text-align:center; color: #777;">No history available.</td>
+            </tr>
+            </tbody>
+        </table>
+        <div th:replace="fragments/paging :: pageSection(${page})"></div>
     </div>
-
-
-    <div id="candlestick-chart" style="width: 100%; max-width: 900px; height: 600px; margin: 20px 0;"></div>
-
-    <div style="margin-bottom: 12px;">
-        <label for="chartType" style="margin-right: 8px;">Chart type:</label>
-        <select id="chartType">
-            <option value="candlestick" selected>Candlestick</option>
-            <option value="line">Line</option>
-            <option value="bar">Bar</option>
-        </select>
-    </div>
-
-
-
-    <table>
-        <thead>
-        <tr>
-            <th>Date</th>
-            <th>Open</th>
-            <th>High</th>
-            <th>Low</th>
-            <th>Close</th>
-            <th>Volume</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr th:each="d : ${page.content}">
-            <td th:text="${d.date}">YYYY-MM-DD</td>
-            <td th:text="${d.open}">0.00</td>
-            <td th:text="${d.high}">0.00</td>
-            <td th:text="${d.low}">0.00</td>
-            <td th:text="${d.close}">0.00</td>
-            <td th:text="${d.volume}">0</td>
-        </tr>
-        <tr th:if="${#lists.isEmpty(page.content)}">
-            <td colspan="6" class="meta">No history for this symbol.</td>
-        </tr>
-        </tbody>
-    </table>
-
-    <div th:replace="fragments/paging :: pageSection(${page})"></div>
 
 </div>
 
-
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
 <script>
-    async function drawChart(symbol, type = 'candlestick') {
-        const res = await fetch(`/api/coins/${symbol}/history/candlestick?limit=100`);
-        const data = await res.json();
+    // --- Global Symbol Variable from Thymeleaf ---
+    const symbol = '[[${symbol}]]';
+    const apiBaseUrl = 'http://localhost:8000'; // Adjust if your FastAPI runs on a different port/host
 
-        let trace;
+    // ==========================================
+    // 1. Existing Chart Logic (Candlestick)
+    // ==========================================
+    async function drawMainChart(type = 'candlestick') {
+        try {
+            // Using your existing Spring Boot endpoint for history
+            const res = await fetch(`/api/coins/${symbol}/history/candlestick?limit=150`);
+            const data = await res.json();
 
-        if (type === 'candlestick') {
-            trace = {
-                x: data.dates,
-                open: data.open,
-                high: data.high,
-                low: data.low,
-                close: data.close,
-                type: 'candlestick',
-                increasing: { line: { color: '#17a2b8' } },
-                decreasing: { line: { color: '#d9534f' } },
-                name: symbol
+            let trace;
+            const colors = { up: '#17a2b8', down: '#d9534f', base: '#17a2b8' };
+
+            if (type === 'candlestick') {
+                trace = {
+                    x: data.dates, open: data.open, high: data.high, low: data.low, close: data.close,
+                    type: 'candlestick',
+                    increasing: { line: { color: colors.up } },
+                    decreasing: { line: { color: colors.down } },
+                    name: symbol
+                };
+            } else if (type === 'line') {
+                trace = {
+                    x: data.dates, y: data.close, type: 'scatter', mode: 'lines',
+                    line: { color: colors.base, width: 2 }, name: symbol
+                };
+            } else if (type === 'bar') {
+                trace = {
+                    x: data.dates, y: data.volume, type: 'bar',
+                    marker: { color: colors.base }, name: 'Volume'
+                };
+            }
+
+            const layout = {
+                margin: { t: 30, r: 40, b: 40, l: 60 },
+                plot_bgcolor: '#1e1e1e',
+                paper_bgcolor: '#1e1e1e',
+                font: { color: '#e0e0e0' },
+                xaxis: { gridcolor: '#333', rangeslider: { visible: false } },
+                yaxis: { gridcolor: '#333', title: 'Price (USD)' },
+                showlegend: false
             };
-        } else if (type === 'line') {
-            trace = {
-                x: data.dates,
-                y: data.close,
-                type: 'scatter',
-                mode: 'lines+markers',
-                line: { color: '#17a2b8' },
-                marker: { color: '#17a2b8' },
-                name: symbol
-            };
-        } else if (type === 'bar') {
-            trace = {
-                x: data.dates,
-                y: data.volume,
-                type: 'bar',
-                marker: { color: '#17a2b8' },
-                name: 'Volume'
-            };
+
+            Plotly.newPlot('candlestick-chart', [trace], layout, {responsive: true});
+        } catch (e) {
+            console.error("Main chart error:", e);
         }
-
-        const layout = {
-            title: { text: `${symbol} ${type.charAt(0).toUpperCase() + type.slice(1)} Chart`, font: { color: '#e0e0e0' } },
-            xaxis: {
-                title: { text: 'Date', font: { color: '#e0e0e0' } },
-                type: 'category',
-                tickfont: { color: '#e0e0e0' },
-                gridcolor: '#444'
-            },
-            yaxis: {
-                title: { text: type === 'bar' ? 'Volume' : 'Price (USD)', font: { color: '#e0e0e0' } },
-                tickfont: { color: '#e0e0e0' },
-                gridcolor: '#444'
-            },
-            margin: { t: 40, r: 40, b: 40, l: 40 },
-            plot_bgcolor: '#1e1e1e',
-            paper_bgcolor: '#121212',
-            font: { color: '#e0e0e0' }
-        };
-
-        Plotly.newPlot('candlestick-chart', [trace], layout);
     }
 
+    // ==========================================
+    // 2. Fetch & Render Forecast (Async)
+    // ==========================================
+    async function loadForecast() {
+        try {
 
-    const symbol = '[[${symbol}]]';
-    drawChart(symbol);
+            const res = await fetch(`${apiBaseUrl}/api/forecast/${symbol}`);
+            if (!res.ok) throw new Error('Forecast API error');
+            const data = await res.json();
 
-    document.getElementById('chartType').addEventListener('change', function() {
-        drawChart(symbol, this.value);
+            // Prepare Data
+            const histDates = data.historical.map(d => d.date);
+            const histPrices = data.historical.map(d => d.predicted_close); // or actual close if available
+
+            const futureDates = data.forecast.map(d => d.date);
+            const futurePrices = data.forecast.map(d => d.predicted_close);
+
+            // Hide Loading
+            document.getElementById('forecast-loading').style.display = 'none';
+
+            const traceHist = {
+                x: histDates, y: histPrices,
+                type: 'scatter', mode: 'lines', name: 'Recent Trend',
+                line: { color: '#888', dash: 'dot', width: 2 }
+            };
+
+            const traceFuture = {
+                x: futureDates, y: futurePrices,
+                type: 'scatter', mode: 'lines+markers', name: 'Forecast',
+                line: { color: '#28a745', width: 3 },
+                marker: { size: 4 }
+            };
+
+            const layout = {
+                margin: { t: 20, r: 20, b: 40, l: 50 },
+                plot_bgcolor: '#1e1e1e',
+                paper_bgcolor: '#1e1e1e',
+                font: { color: '#e0e0e0' },
+                xaxis: { gridcolor: '#333', title: 'Date' },
+                yaxis: { gridcolor: '#333', title: 'Predicted Price' },
+                legend: { x: 0, y: 1, orientation: 'h' }
+            };
+
+            Plotly.newPlot('forecast-chart', [traceHist, traceFuture], layout, {responsive: true});
+
+        } catch (e) {
+            document.getElementById('forecast-loading').innerText = "Forecast data unavailable.";
+            console.error(e);
+        }
+    }
+
+    // ==========================================
+    // 3. Fetch & Render On-Chain Metrics (Async)
+    // ==========================================
+    async function loadOnChain() {
+        try {
+            var simb = symbol.split("-")[0]
+            const res = await fetch(`${apiBaseUrl}/api/onchain-metrics/${simb}`);
+            if (!res.ok) throw new Error('On-chain API error');
+            const data = await res.json();
+
+            // Debugging: Look at the console to see exactly what keys we got
+            console.log("API Response Keys:", Object.keys(data));
+
+            // Helper to get value regardless of casing (handles "Active Addresses" OR "active_addresses")
+            const getVal = (key1, key2) => data[key1] !== undefined ? data[key1] : data[key2];
+
+            const metricsToShow = [
+                { label: 'Active Addresses', value: getVal('Active Addresses', 'active_addresses') },
+                { label: 'Transactions', value: getVal('Transactions', 'transactions') },
+                { label: 'MVRV Ratio', value: getVal('MVRV', 'mvrv')?.toFixed(2) },
+                { label: 'Network Hash Rate', value: getVal('Hash Rate', 'hash_rate') },
+                // Note: The USD fields might be snake_case in some configs
+                { label: 'Exchange Inflow', value: '$' + formatCompact(getVal('Exchange Inflow (USD)', 'exchange_inflow')) },
+                { label: 'Exchange Outflow', value: '$' + formatCompact(getVal('Exchange Outflow (USD)', 'exchange_outflow')) },
+                { label: 'Net Flow', value: '$' + formatCompact(getVal('Exchange Net Flow (USD)', 'exchange_net_flow')) }
+            ];
+
+            const container = document.getElementById('onchain-data');
+            container.innerHTML = '';
+
+            metricsToShow.forEach(m => {
+                // Check if value exists (and isn't the string "$0" if data was missing)
+                if (m.value !== undefined && m.value !== null && m.value !== '$0') {
+                    const div = document.createElement('div');
+                    div.className = 'metric-item';
+                    div.innerHTML = `
+                        <span class="metric-label">${m.label}</span>
+                        <span class="metric-value">${m.value}</span>
+                    `;
+                    container.appendChild(div);
+                }
+            });
+
+            document.getElementById('onchain-loading').style.display = 'none';
+            container.style.display = 'grid';
+
+        } catch (e) {
+            // This is what prints if CORS fails
+            console.error("Detailed Error:", e);
+            document.getElementById('onchain-loading').innerText = "On-chain metrics unavailable (Check Console).";
+        }
+    }
+
+    // Helper for large numbers (1.2M, 3B)
+    function formatCompact(num) {
+        if(!num) return '0';
+        return Intl.NumberFormat('en-US', { notation: "compact", maximumFractionDigits: 1 }).format(num);
+    }
+
+    // ==========================================
+    // 4. Fetch & Render Technicals (Async)
+    // ==========================================
+    async function loadTechnical() {
+        try {
+            const res = await fetch(`${apiBaseUrl}/api/technical/${symbol}`);
+            if (!res.ok) throw new Error('Technical API error');
+            const data = await res.json();
+
+            renderTechTab('daily', data.daily);
+            renderTechTab('weekly', data.weekly);
+            renderTechTab('monthly', data.monthly);
+
+        } catch (e) {
+            document.querySelectorAll('.tech-content p').forEach(el => el.innerText = "Technical data unavailable.");
+            console.error(e);
+        }
+    }
+
+    function renderTechTab(timeframe, dataArray) {
+        const container = document.getElementById(`tech-${timeframe}`);
+        if (!dataArray || dataArray.length === 0) {
+            container.innerHTML = '<p class="meta">No data.</p>';
+            return;
+        }
+
+        const latest = dataArray[0]; // Get most recent
+
+        // Determine signal color class
+        let signalClass = 'signal-neutral';
+        if (latest.signal.toLowerCase().includes('buy')) signalClass = 'signal-buy';
+        if (latest.signal.toLowerCase().includes('sell')) signalClass = 'signal-sell';
+
+        container.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <span style="font-size:14px; color:#ddd;">Signal:</span>
+                <span class="signal-badge ${signalClass}">${latest.signal}</span>
+            </div>
+            <div class="metrics-grid">
+                <div class="metric-item">
+                    <span class="metric-label">RSI</span>
+                    <span class="metric-value" style="color:${getColorForRSI(latest.rsi)}">${latest.rsi.toFixed(2)}</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">MACD</span>
+                    <span class="metric-value">${latest.macd.toFixed(2)}</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">Stoch</span>
+                    <span class="metric-value">${latest.stoch.toFixed(2)}</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">EMA (20)</span>
+                    <span class="metric-value">${latest.details.ema20?.toFixed(2)}</span>
+                </div>
+            </div>
+            <div class="meta" style="margin-top:10px; text-align:right;">Date: ${latest.date}</div>
+        `;
+    }
+
+    function getColorForRSI(val) {
+        if (val > 70) return '#d9534f'; // Overbought
+        if (val < 30) return '#28a745'; // Oversold
+        return '#fff';
+    }
+
+    // Tab Switcher
+    window.switchTab = function(tabName) {
+        // Buttons
+        document.querySelectorAll('.tech-tab').forEach(b => b.classList.remove('active'));
+        event.target.classList.add('active');
+
+        // Content
+        document.querySelectorAll('.tech-content').forEach(c => c.classList.remove('active'));
+        document.getElementById(`tech-${tabName}`).classList.add('active');
+    };
+
+    // ==========================================
+    // Init
+    // ==========================================
+    document.addEventListener('DOMContentLoaded', () => {
+        drawMainChart(); // Existing local chart
+
+        // Call Python Microservice Endpoints
+        loadForecast();
+        loadOnChain();
+        loadTechnical();
     });
 
+    document.getElementById('chartType').addEventListener('change', function() {
+        drawMainChart(this.value);
+    });
 
 </script>
 

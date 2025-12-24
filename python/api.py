@@ -6,6 +6,7 @@ from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 
+from fastapi.middleware.cors import CORSMiddleware
 # --- Import your modules ---
 from technical_analysis import technical_analysis
 from lstm import lstm_attempt
@@ -13,6 +14,15 @@ from on_chain.onchain_dashboard import get_all_metrics, get_whale_movements, exc
 from main import gather_all_data, combination
 
 app = FastAPI(title="Crypto Analytics Microservice")
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins (ports/domains) to access data
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allows all headers
+)
 
 # --- Configuration ---
 # Paths must be relative to the container structure
