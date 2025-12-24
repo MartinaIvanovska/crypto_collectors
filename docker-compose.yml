@@ -1,10 +1,30 @@
 version: "3.8"
 services:
-  crypto-app:
-    build: .
+  # 1. Spring Boot Application
+  spring-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: crypto-project:latest
     ports:
       - "8080:8080"
     volumes:
-      - ./data:/data:rw
+      - ./data:/data:rw  # Share data folder
+    environment:
+      - PYTHON_API_URL=http://python-service:8000
+    depends_on:
+      - python-service
+    restart: unless-stopped
+
+  # 2. Python Analytics Microservice
+  python-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.python
+    image: crypto-analytics:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/data:rw      # Shared DB access
+      - ./models:/models:rw  # Shared Models access
     restart: unless-stopped

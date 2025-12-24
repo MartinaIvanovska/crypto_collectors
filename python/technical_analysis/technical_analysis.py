@@ -5,7 +5,7 @@ import ta
 from multiprocessing import Pool, cpu_count
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "..", "data", "crypto_daily.db")
+DB_PATH = os.path.join(BASE_DIR, "../..", "data", "crypto_daily.db")
 
 SOURCE_TABLE = "daily"
 TARGET_TABLE = "technical_analysis"
