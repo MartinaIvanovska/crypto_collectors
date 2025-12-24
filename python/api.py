@@ -9,7 +9,7 @@ from typing import List, Dict, Any, Optional
 # --- Import your modules ---
 from technical_analysis import technical_analysis
 from lstm import lstm_attempt
-from on_chain.onchain_dashboard import get_all_metrics, get_whale_movements
+from on_chain.onchain_dashboard import get_all_metrics, get_whale_movements, exchange_flows
 from main import gather_all_data, combination  # Assuming main.py is renamed or imported as is
 
 app = FastAPI(title="Crypto Analytics Microservice")
@@ -47,7 +47,49 @@ class SentimentOnChainData(BaseModel):
     metrics: Dict[str, Any]
     whale_alerts: List[Dict[str, Any]]
 
+# --- New Pydantic Models for On-Chain Reports ---
+from pydantic import BaseModel, Field # Ensure Field is imported
+from typing import List, Dict, Any
 
+# --- New Pydantic Models for On-Chain Reports ---
+class AllOnChainMetrics(BaseModel):
+    """Schema for the /api/onchain-metrics/{symbol} endpoint."""
+    # Corrected variables using aliases for keys with spaces/special chars
+    asset: str = Field(alias="Asset")
+    active_addresses: float = Field(alias="Active Addresses")
+    transactions: float = Field(alias="Transactions")
+    hash_rate: float = Field(alias="Hash Rate")
+    mvrv: float = Field(alias="MVRV")
+    tvl: float = Field(alias="TVL")
+    nvt: float = Field(alias="NVT")
+    coingecko_id: str = Field(alias="CoinGecko ID")
+    exchange_inflow: float = Field(alias="Exchange Inflow (USD)")
+    exchange_outflow: float = Field(alias="Exchange Outflow (USD)")
+    exchange_net_flow: float = Field(alias="Exchange Net Flow (USD)")
+
+    class Config:
+        # Allows Pydantic to accept data using the aliases
+        populate_by_name = True
+
+# The other models were mostly fine, but I'll include the corrected
+# WhaleMovement for completeness (though it didn't use aliases)
+
+class WhaleMovement(BaseModel):
+    """Schema for individual whale alert items."""
+    date: str
+    hash: str
+    symbol: str
+    type: str
+    amount: float
+    amount_usd: float
+    text: str
+    amounts: List[Dict[str, Any]]
+
+
+class WhaleReport(BaseModel):
+    """Schema for the /api/whale-reports endpoint."""
+    total_alerts: int
+    alerts: List[WhaleMovement]
 # --- API Endpoints ---
 
 @app.get("/health")
@@ -175,6 +217,72 @@ def run_pipeline_manually():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@app.get("/api/onchain-metrics/{symbol}", response_model=AllOnChainMetrics)
+def get_aggregated_onchain_metrics(symbol: str):
+    """
+    Returns a comprehensive set of on-chain, valuation, and exchange flow metrics for a symbol.
+    """
+    try:
+        # Get core on-chain metrics
+        metrics = get_all_metrics(symbol)
+
+        # Get exchange flow metrics and merge them
+        flows = exchange_flows(symbol)
+
+        # Merge all data into one dictionary
+        all_data = {**metrics, **flows}
+
+        # Pydantic validation handles conversion and missing keys check
+        return AllOnChainMetrics(**all_data)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch on-chain metrics for {symbol}: {e}")
+
+
+@app.get("/api/whale-reports", response_model=WhaleReport)
+def get_latest_whale_movements(limit: int = Query(50, description="The maximum number of whale alerts to return.")):
+    """
+    Fetches the latest whale transfer alerts from the Whale Alert API.
+    """
+    try:
+        # Fetch raw whale data
+        whales_raw = get_whale_movements(limit=limit)
+
+        # Prepare data for WhaleReport response model
+        # The structure of get_whale_movements is not fully visible,
+        # but we assume it returns a list of dictionaries.
+
+        # We need to transform the raw alerts to match the WhaleMovement schema
+        # based on the known structure from the `on_chain_dashboard.py` file.
+
+        transformed_alerts = []
+        for alert in whales_raw:
+            try:
+                # Basic transformation to match WhaleMovement model fields
+                # This is an educated guess based on typical Whale Alert data structure
+                primary_amount = alert.get('amounts', [{}])[0]
+                transformed_alerts.append({
+                    "date": alert.get('date'),
+                    "hash": alert.get('hash', 'N/A'),
+                    "symbol": primary_amount.get('symbol', 'N/A'),
+                    "type": alert.get('type', 'N/A'),
+                    "amount": primary_amount.get('amount', 0.0),
+                    "amount_usd": primary_amount.get('amount_usd', 0.0),
+                    "text": alert.get('text', 'N/A'),
+                    "amounts": alert.get('amounts', [])
+                })
+            except Exception as e:
+                print(f"Skipping malformed whale alert: {e}")
+                continue
+
+        return {
+            "total_alerts": len(whales_raw),
+            "alerts": transformed_alerts
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch whale reports: {e}")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
