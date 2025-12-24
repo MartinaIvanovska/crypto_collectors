@@ -25,12 +25,17 @@ DB_PATH = os.environ.get("DB_PATH", os.path.join(BASE_DIR, "..", "data", "crypto
 class TechnicalData(BaseModel):
     symbol: str
     date: str
+    timeframe: str
     signal: str
     rsi: float
     macd: float
     stoch: float
     details: Dict[str, float]
 
+class TechnicalAnalysisResponse(BaseModel):
+    daily: List[TechnicalData]
+    weekly: List[TechnicalData]
+    monthly: List[TechnicalData]
 
 class ForecastData(BaseModel):
     symbol: str
@@ -95,45 +100,64 @@ def health():
     return {"status": "up"}
 
 
-@app.get("/api/technical/{symbol}", response_model=List[TechnicalData])
+@app.get("/api/technical/{symbol}", response_model=TechnicalAnalysisResponse)  # <--- UPDATED response_model
 def get_technical_analysis(symbol: str):
     """
-    Fetches the latest technical indicators and signals from the DB.
+    Fetches the latest technical indicators and signals from the DB
+    for 1D, 1W, and 1M timeframes, returning the last 5 records for each.
     """
+    TIME_FRAMES = {
+        "daily": "1D",
+        "weekly": "1W",
+        "monthly": "1M"
+    }
+
+    # Final response dictionary initialized
+    response_data = {
+        "daily": [],
+        "weekly": [],
+        "monthly": []
+    }
+
     try:
         conn = sqlite3.connect(DB_PATH)
-        # Fetch last 5 records to show trend
-        query = f"""
-            SELECT symbol, date, signal, rsi, macd, stoch, 
-                   sma20, ema20, bb_high, bb_low 
-            FROM {technical_analysis.TARGET_TABLE}
-            WHERE symbol = ? AND timeframe = '1D'
-            ORDER BY date DESC LIMIT 5
-        """
-        df = pd.read_sql_query(query, conn, params=(symbol,))
+
+        # Loop through all desired timeframes
+        for key, timeframe_code in TIME_FRAMES.items():
+            query = f"""
+                SELECT symbol, date, signal, rsi, macd, stoch, 
+                       sma20, ema20, bb_high, bb_low 
+                FROM {technical_analysis.TARGET_TABLE}
+                WHERE symbol = ? AND timeframe = ?
+                ORDER BY date DESC LIMIT 5
+            """
+            # Pass both symbol and timeframe_code as parameters
+            df = pd.read_sql_query(query, conn, params=(symbol, timeframe_code))
+
+            results_list = []
+            for _, row in df.iterrows():
+                results_list.append({
+                    "symbol": row['symbol'],
+                    "date": row['date'],
+                    "timeframe": timeframe_code,  # <--- ADDED timeframe
+                    "signal": row['signal'],
+                    "rsi": row['rsi'],
+                    "macd": row['macd'],
+                    "stoch": row['stoch'],
+                    "details": {
+                        "sma20": row['sma20'],
+                        "ema20": row['ema20'],
+                        "bb_high": row['bb_high'],
+                        "bb_low": row['bb_low']
+                    }
+                })
+
+            # Store the results under the appropriate key (daily, weekly, monthly)
+            response_data[key] = results_list
+
         conn.close()
+        return response_data  # Return the combined dictionary
 
-        if df.empty:
-            # Optional: trigger analysis if missing
-            return []
-
-        results = []
-        for _, row in df.iterrows():
-            results.append({
-                "symbol": row['symbol'],
-                "date": row['date'],
-                "signal": row['signal'],
-                "rsi": row['rsi'],
-                "macd": row['macd'],
-                "stoch": row['stoch'],
-                "details": {
-                    "sma20": row['sma20'],
-                    "ema20": row['ema20'],
-                    "bb_high": row['bb_high'],
-                    "bb_low": row['bb_low']
-                }
-            })
-        return results
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
