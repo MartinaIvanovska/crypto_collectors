@@ -181,7 +181,7 @@ def get_forecast(symbol: str):
         conn = sqlite3.connect(DB_PATH)
 
         # 1. Get Future Predictions
-        future_sql = "SELECT date, predicted_close FROM predictions WHERE symbol = ? AND date > date('now') ORDER BY date ASC"
+        future_sql = "SELECT date, predicted_close FROM predictions WHERE symbol = ? AND date >= date('now') ORDER BY date ASC"
         future_df = pd.read_sql_query(future_sql, conn, params=(symbol,))
 
         # 2. Get Recent History (Context)

@@ -1,3 +1,4 @@
+# PIEVERSE-USD
 #%% Requirements (run once)
 # pip install numpy pandas scikit-learn tensorflow joblib
 
@@ -30,7 +31,7 @@ os.makedirs(MODEL_DIR, exist_ok=True)
 # defaults
 DEFAULT_LOOKBACKS = [30]         # you can add more like [10, 30, 60] to experiment
 DEFAULT_FORECAST_DAYS = 10       # used for quick runs; actual DB writes use FUTURE_PRED_DAYS below
-MAX_WORKERS = 3
+MAX_WORKERS = 5
 MIN_SAMPLES = 200                # minimum rows required to attempt training (adjustable)
 HIST_PRED_DAYS = 30              # write last 30 days of historical predictions
 FUTURE_PRED_DAYS = 30            # write next 30 days of forecasts
@@ -245,8 +246,9 @@ def process_coin(symbol, lookback=30, forecast_days=10, dry_run=False, min_sampl
         # ===========================
         # WRITE TO DB: only last HIST_PRED_DAYS + next FUTURE_PRED_DAYS
         # ===========================
-        # delete previous predictions for this symbol to keep table clean
-        conn.execute("DELETE FROM predictions WHERE symbol=?", (symbol,))
+        # The INSERT OR REPLACE handles existing symbol/date pairs, so no explicit
+        # DELETE FROM is needed here, preventing the deletion of other symbols' predictions.
+        # conn.execute("DELETE FROM predictions WHERE symbol=?", (symbol,))
 
         # last HIST_PRED_DAYS historical predictions (if available)
         hist_count = min(HIST_PRED_DAYS, len(dates))
@@ -310,52 +312,103 @@ def run_pipeline(symbols, lookbacks=DEFAULT_LOOKBACKS, forecast_days=DEFAULT_FOR
                 results.append(res)
     return results
 
+#%% NEW FUNCTION: Get symbols that haven't been predicted
+def get_unpredicted_symbols():
+    """
+    Fetch symbols from 'daily' that are NOT present in the 'predictions' table.
+    This logic assumes a symbol is 'predicted' if it has *any* entry in the predictions table.
+    """
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        # Get all symbols from daily
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT symbol FROM daily")
+        all_symbols = {row[0] for row in cursor.fetchall()}
+
+        # Get all symbols that are already in predictions
+        cursor.execute("SELECT DISTINCT symbol FROM predictions")
+        predicted_symbols = {row[0] for row in cursor.fetchall()}
+
+        # Find the difference
+        unpredicted_symbols = list(all_symbols - predicted_symbols)
+        return unpredicted_symbols
+    finally:
+        conn.close()
+
+def get_all_symbols():
+    """Fetch all unique symbols from the daily table (Original, kept for completeness)."""
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        # Get all symbols that have at least some data
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT symbol FROM daily")
+        symbols = [row[0] for row in cursor.fetchall()]
+        return symbols
+    finally:
+        conn.close()
+
+def clear_all_predictions():
+    """Wipe the predictions table completely to ensure a fresh start (Original, commented out in main)."""
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        conn.execute("DELETE FROM predictions")
+        conn.commit()
+        logger.info("Predictions table wiped successfully.")
+    finally:
+        conn.close()
 #%% Example usage
 if __name__ == "__main__":
 
     ensure_predictions_table()
-    TEST_COINS = ["BTC-USD", "ETH-USD"]
+    # clear_all_predictions()
 
-    # dry run to see sample counts
-    run_pipeline(TEST_COINS, lookbacks=[30], forecast_days=10, dry_run=True)
+    logger.info("Fetching all symbols from database...")
+    all_coins = get_all_symbols()
+    logger.info(f"Found {len(all_coins)} symbols in 'daily' table.")
 
-    # full run: train/validate & forecast (writes last 30 historical + next 30 future)
-    outs = run_pipeline(TEST_COINS, lookbacks=[30], forecast_days=10, dry_run=False)
+    # --- CHANGE: Get only the symbols that do not have any existing predictions
+    unpredicted_coins = get_unpredicted_symbols()
+    print("Length of unpredicted: ",len(unpredicted_coins))
+    print("Individual coins: ", unpredicted_coins)
+    logger.info(f"Found {len(unpredicted_coins)} symbols that have NOT been predicted yet: {unpredicted_coins}")
 
-    # print summarized metrics
+    if not unpredicted_coins:
+        logger.warning("All symbols appear to have predictions already. Exiting.")
+        exit()
+
+    # --- CHANGE: Run pipeline only on the unpredicted subset
+    outs = run_pipeline(unpredicted_coins, lookbacks=[30], forecast_days=10, dry_run=False)
+
+    logger.info("Processing complete.")
+
     for out in outs:
         if out:
             lm = out["val_metrics"]
-            logger.info(f"RESULT: {out['symbol']} lb={out['lookback']} -> RMSE={lm['rmse']:.4f}, MAPE={lm['mape']:.4f}, R2={lm['r2']:.4f}")
-            # show saved future forecasts (next 30)
-            for d, p in zip(out["future_dates"], out["future_pred"]):
-                logger.info(f"  forecast {d.strftime('%Y-%m-%d')}: {p:.2f}")
-    # print(outs)
+            logger.info(
+                f"RESULT: {out['symbol']} lb={out['lookback']} -> RMSE={lm['rmse']:.4f}, MAPE={lm['mape']:.4f}, R2={lm['r2']:.4f}")
 
-    # Write forecasts to CSV file
-    if outs:
-        csv_filename = f"forecasts.csv"
-
-        with open(csv_filename, 'w', newline='') as csvfile:
-            fieldnames = ['symbol', 'lookback', 'forecast_date', 'forecasted_price']
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-
-            writer.writeheader()
-
-            for out in outs:
-                if out:
-                    symbol = out['symbol']
-                    lookback = out['lookback']
-                    future_dates = out['future_dates']
-                    future_pred = out['future_pred']
-
-                    # Write each forecast row
-                    for date, price in zip(future_dates, future_pred):
-                        writer.writerow({
-                            'symbol': symbol,
-                            'lookback': lookback,
-                            'forecast_date': date.strftime('%Y-%m-%d'),
-                            'forecasted_price': f"{price:.2f}"
-                        })
-
-        logger.info(f"Forecasts written to {csv_filename}")
+    # if outs:
+    #     csv_filename = f"forecasts_new_coins.csv" # <--- Changed filename for clarity
+    #     try:
+    #         with open(csv_filename, 'w', newline='') as csvfile:
+    #             fieldnames = ['symbol', 'lookback', 'forecast_date', 'forecasted_price']
+    #             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+    #             writer.writeheader()
+    #
+    #             for out in outs:
+    #                 if out:
+    #                     symbol = out['symbol']
+    #                     lookback = out['lookback']
+    #                     future_dates = out['future_dates']
+    #                     future_pred = out['future_pred']
+    #
+    #                     for date, price in zip(future_dates, future_pred):
+    #                         writer.writerow({
+    #                             'symbol': symbol,
+    #                             'lookback': lookback,
+    #                             'forecast_date': date.strftime('%Y-%m-%d'),
+    #                             'forecasted_price': f"{price:.2f}"
+    #                         })
+    #         logger.info(f"New forecasts written to {csv_filename}")
+    #     except Exception as e:
+    #         logger.error(f"Failed to write CSV: {e}")
