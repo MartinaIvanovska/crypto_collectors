@@ -14,7 +14,7 @@
         /* --- Layout & Containers --- */
         .page-container {
             padding: 32px;
-            max-width: 1400px; /* Increased width to fit dashboard */
+            max-width: 1500px; /* Increased width to fit dashboard */
             margin: 0 auto;
             display: flex;
             flex-direction: column;
@@ -138,10 +138,98 @@
         .loading-text { color: #555; font-style: italic; font-size: 13px; }
         .meta { color: #888; font-size: 13px; margin-bottom: 15px; }
 
+        /* --- Sub-tabs inside each timeframe --- */
+        .sub-tabs { display:flex; gap:8px; margin-bottom:12px; }
+        .sub-tab {
+            background:#262626; color:#bfbfbf; padding:6px 10px; border-radius:6px; cursor:pointer; font-size:13px;
+            border:1px solid #333;
+        }
+        .sub-tab.active { background:#17a2b8; color:#fff; border-color:#117a8b; }
+
+        /* --- Meter (three-zone) --- */
+        .meter {
+            width:100%;
+            height:44px;
+            position:relative;
+            border-radius:8px;
+            background: linear-gradient(90deg, rgba(220,53,69,0.12) 0% 33%, rgba(255,193,7,0.08) 33% 66%, rgba(40,167,69,0.12) 66% 100%);
+            border:1px solid rgba(255,255,255,0.04);
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            padding:0 12px;
+            box-sizing:border-box;
+            margin-top:12px;
+        }
+        .meter .label { font-size:12px; color:#ddd; font-weight:600; }
+        .meter-needle {
+            position:absolute;
+            top:-6px;
+            width:2px;
+            height:56px;
+            background:#fff;
+            opacity:0.95;
+            border-radius:2px;
+            transform-origin: 50% 50%;
+            transition: left 300ms ease, background 300ms ease;
+        }
+        .meter-center-dot {
+            position:absolute;
+            left:50%;
+            top:50%;
+            transform:translate(-50%,-50%);
+            width:8px;
+            height:8px;
+            border-radius:50%;
+            background:rgba(0,0,0,0.5);
+            border:2px solid rgba(255,255,255,0.12);
+        }
+
+        /* Indicator list */
+        .indicators-grid {
+            display:flex;
+            flex-direction: column;
+            gap:10px;
+            margin-top:10px;
+        }
+        .indicator-card {
+            background:#232323;
+            padding:10px;
+            border-radius:6px;
+            border:1px solid #2d2d2d;
+        }
+        .indicator-label { font-size:12px; color:#9aa; display:block; margin-bottom:6px; }
+        .indicator-value { font-size:15px; font-weight:700; color:#fff; }
+
+        .tech-boxes {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .tech-box {
+            flex: 1;
+            min-width: 260px;
+            background-color: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 14px;
+        }
+
+        .tech-box h4 {
+            margin: 0 0 12px 0;
+            font-size: 14px;
+            color: #17a2b8;
+            border-bottom: 1px solid #333;
+            padding-bottom: 6px;
+        }
+
+
         /* Responsive Fix */
         @media (max-width: 900px) {
             .dashboard-row { flex-direction: column; }
             .chart-col, .metrics-col { min-width: 100%; }
+            .indicators-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -196,7 +284,7 @@
                 <div id="onchain-container">
                     <p id="onchain-loading" class="loading-text">Fetching blockchain data...</p>
                     <div id="onchain-data" class="metrics-grid" style="display: none;">
-                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -204,9 +292,10 @@
                 <h3>Technical Analysis</h3>
 
                 <div class="tech-tabs">
-                    <button class="tech-tab active" onclick="switchTab('daily')">Daily</button>
-                    <button class="tech-tab" onclick="switchTab('weekly')">Weekly</button>
-                    <button class="tech-tab" onclick="switchTab('monthly')">Monthly</button>
+                    <button class="tech-tab active" onclick="switchTab(event,'daily')">Daily</button>
+                    <button class="tech-tab" onclick="switchTab(event,'weekly')">Weekly</button>
+                    <button class="tech-tab" onclick="switchTab(event,'monthly')">Monthly</button>
+
                 </div>
 
                 <div id="tech-daily" class="tech-content active">
@@ -318,30 +407,43 @@
     // ==========================================
     async function loadForecast() {
         try {
-
             const res = await fetch(`${apiBaseUrl}/api/forecast/${symbol}`);
             if (!res.ok) throw new Error('Forecast API error');
-            const data = await res.json();
 
-            // Prepare Data
-            const histDates = data.historical.map(d => d.date);
-            const histPrices = data.historical.map(d => d.predicted_close); // or actual close if available
+            const data = await res.json(); // <-- this is an ARRAY
 
-            const futureDates = data.forecast.map(d => d.date);
-            const futurePrices = data.forecast.map(d => d.predicted_close);
+            // OPTIONAL: split data into recent vs future
+            const splitIndex = Math.max(data.length - 30, 0);
 
-            // Hide Loading
+            const historical = data.slice(0, splitIndex);
+            const forecast = data.slice(splitIndex);
+
+            const histDates = historical.map(d => d.date);
+            const histPrices = historical.map(d => d.predicted_close);
+
+            const futureDates = forecast.map(d => d.date);
+            const futurePrices = forecast.map(d => d.predicted_close);
+            // const futurePrices = forecast.map(d =>
+            //     Math.max(d.predicted_close, 0)
+            // );
+
             document.getElementById('forecast-loading').style.display = 'none';
 
             const traceHist = {
-                x: histDates, y: histPrices,
-                type: 'scatter', mode: 'lines', name: 'Recent Trend',
+                x: histDates,
+                y: histPrices,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Recent Trend',
                 line: { color: '#888', dash: 'dot', width: 2 }
             };
 
             const traceFuture = {
-                x: futureDates, y: futurePrices,
-                type: 'scatter', mode: 'lines+markers', name: 'Forecast',
+                x: futureDates,
+                y: futurePrices,
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Forecast',
                 line: { color: '#28a745', width: 3 },
                 marker: { size: 4 }
             };
@@ -356,10 +458,16 @@
                 legend: { x: 0, y: 1, orientation: 'h' }
             };
 
-            Plotly.newPlot('forecast-chart', [traceHist, traceFuture], layout, {responsive: true});
+            Plotly.newPlot(
+                'forecast-chart',
+                [traceHist, traceFuture],
+                layout,
+                { responsive: true }
+            );
 
         } catch (e) {
-            document.getElementById('forecast-loading').innerText = "Forecast data unavailable.";
+            document.getElementById('forecast-loading').innerText =
+                "Forecast data unavailable.";
             console.error(e);
         }
     }
@@ -428,78 +536,192 @@
     // ==========================================
     async function loadTechnical() {
         try {
-            const res = await fetch(`${apiBaseUrl}/api/technical/${symbol}`);
+            const normalizedSymbol = (symbol || '').toUpperCase();
+            const res = await fetch(`${apiBaseUrl}/api/technical/${normalizedSymbol}`);
             if (!res.ok) throw new Error('Technical API error');
-            const data = await res.json();
+            const payload = await res.json();
 
-            renderTechTab('daily', data.daily);
-            renderTechTab('weekly', data.weekly);
-            renderTechTab('monthly', data.monthly);
+            // Normalize into arrays for each timeframe
+            let daily = [], weekly = [], monthly = [];
+            if (Array.isArray(payload)) {
+                payload.forEach(item => {
+                    const tf = (item.timeframe || '').toString().toLowerCase();
+                    if (tf.includes('1d') || tf.includes('daily')) daily.push(item);
+                    else if (tf.includes('1w') || tf.includes('weekly')) weekly.push(item);
+                    else if (tf.includes('1m') || tf.includes('monthly')) monthly.push(item);
+                });
+            } else if (payload && typeof payload === 'object') {
+                daily = payload.daily || [];
+                weekly = payload.weekly || [];
+                monthly = payload.monthly || [];
+            }
+
+            renderTechTab('daily', daily);
+            renderTechTab('weekly', weekly);
+            renderTechTab('monthly', monthly);
 
         } catch (e) {
-            document.querySelectorAll('.tech-content p').forEach(el => el.innerText = "Technical data unavailable.");
             console.error(e);
+            document.querySelectorAll('.tech-content').forEach(c => c.innerHTML = '<p class="meta">Technical data unavailable.</p>');
         }
     }
 
+    /* Safe formatter */
+    function fmt(val, digits = 2) {
+        if (val === null || val === undefined || Number.isNaN(Number(val))) return '—';
+        if (Math.abs(val) >= 1e6 || Number.isInteger(val)) return Number(val).toLocaleString();
+        return Number(val).toLocaleString(undefined, { maximumFractionDigits: digits });
+    }
+
+    /* Map keys to groups */
+    const OSCILLATORS = ['rsi','macd','stoch','adx','cci'];
+    const MOVING = ['sma20','ema20','wma20','bb_high','bb_low','vol_sma20'];
+
+    /* Convert item key -> pretty label */
+    function prettyLabel(key) {
+        const map = {
+            rsi: 'RSI',
+            macd: 'MACD',
+            stoch: 'Stochastic',
+            adx: 'ADX',
+            cci: 'CCI',
+            sma20: 'SMA(20)',
+            ema20: 'EMA(20)',
+            wma20: 'WMA(20)',
+            bb_high: 'BB High',
+            bb_low: 'BB Low',
+            vol_sma20: 'Vol SMA(20)'
+        };
+        return map[key] || key;
+    }
+
+    /* Meter position: left=SELL (0%), mid=HOLD (50%), right=BUY (100%) */
+    function meterLeftPercentForSignal(signal) {
+        if (!signal) return 50;
+        const s = signal.toString().toLowerCase();
+        if (s.includes('buy')) return 90;
+        if (s.includes('sell')) return 10;
+        return 50; // hold / neutral
+    }
+
+    /* color cue for needle */
+    function meterColorForSignal(signal) {
+        if (!signal) return '#ffc107';
+        const s = signal.toString().toLowerCase();
+        if (s.includes('buy')) return '#28a745';
+        if (s.includes('sell')) return '#dc3545';
+        return '#ffc107';
+    }
+
+    /* Render the timeframe container: shows BOTH Oscillators and Moving Averages side-by-side */
     function renderTechTab(timeframe, dataArray) {
         const container = document.getElementById(`tech-${timeframe}`);
+        if (!container) return;
+
         if (!dataArray || dataArray.length === 0) {
             container.innerHTML = '<p class="meta">No data.</p>';
             return;
         }
 
-        const latest = dataArray[0]; // Get most recent
+        const latest = dataArray[0];
 
-        // Determine signal color class
-        let signalClass = 'signal-neutral';
-        if (latest.signal.toLowerCase().includes('buy')) signalClass = 'signal-buy';
-        if (latest.signal.toLowerCase().includes('sell')) signalClass = 'signal-sell';
-
+        // Build the base layout: both groups visible side-by-side
         container.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                <span style="font-size:14px; color:#ddd;">Signal:</span>
-                <span class="signal-badge ${signalClass}">${latest.signal}</span>
+        <div class="content-area">
+            <!-- Meter will be injected here -->
+            <div class="meter" id="meter-${timeframe}">
+                <div class="label">SELL</div>
+                <div class="label">HOLD</div>
+                <div class="label">BUY</div>
+                <div class="meter-needle" id="needle-${timeframe}"></div>
+                <div class="meter-center-dot"></div>
             </div>
-            <div class="metrics-grid">
-                <div class="metric-item">
-                    <span class="metric-label">RSI</span>
-                    <span class="metric-value" style="color:${getColorForRSI(latest.rsi)}">${latest.rsi.toFixed(2)}</span>
+
+            <div style="display:flex; gap:12px; margin-top:12px; align-items:flex-start;">
+                <div style="flex:1; min-width:180px;">
+                    <h4 style="margin:6px 0; font-size:13px; color:#17a2b8;">Oscillators</h4>
+                    <div id="indicators-${timeframe}-osc" class="indicators-grid" aria-live="polite"></div>
                 </div>
-                <div class="metric-item">
-                    <span class="metric-label">MACD</span>
-                    <span class="metric-value">${latest.macd.toFixed(2)}</span>
-                </div>
-                <div class="metric-item">
-                    <span class="metric-label">Stoch</span>
-                    <span class="metric-value">${latest.stoch.toFixed(2)}</span>
-                </div>
-                <div class="metric-item">
-                    <span class="metric-label">EMA (20)</span>
-                    <span class="metric-value">${latest.details.ema20?.toFixed(2)}</span>
+
+                <div style="flex:1; min-width:180px;">
+                    <h4 style="margin:6px 0; font-size:13px; color:#17a2b8;">Moving Averages</h4>
+                    <div id="indicators-${timeframe}-ma" class="indicators-grid" aria-live="polite"></div>
                 </div>
             </div>
-            <div class="meta" style="margin-top:10px; text-align:right;">Date: ${latest.date}</div>
+
+            <div class="meta" id="meta-${timeframe}" style="margin-top:8px; text-align:right;"></div>
+        </div>
+    `;
+
+        // Render both groups immediately
+        renderSubContent(timeframe, latest, 'osc');
+        renderSubContent(timeframe, latest, 'ma');
+
+        // Setup the meter needle
+        const posPercent = meterLeftPercentForSignal(latest.signal);
+        const needle = document.getElementById(`needle-${timeframe}`);
+        if (needle) {
+            // position via percentage
+            needle.style.left = `calc(${posPercent}% - 1px)`;
+            needle.style.background = meterColorForSignal(latest.signal);
+        }
+
+        // meta
+        const metaEl = document.getElementById(`meta-${timeframe}`);
+        metaEl.innerText = `Signal: ${latest.signal || '—'}   •   ${latest.symbol || ''} ${latest.timeframe ? '• ' + latest.timeframe : ''} ${latest.date ? '• ' + latest.date : ''}`;
+    }
+
+    /* Renders the selected group inside the specified indicators grid */
+    function renderSubContent(timeframe, latest, sub) {
+        // Now target specific grids for osc / ma
+        const grid = document.getElementById(`indicators-${timeframe}-${sub}`);
+        if (!grid) return;
+
+        // determine keys in the latest object matching group
+        const entries = Object.keys(latest)
+            .filter(k => {
+                const lk = k.toLowerCase();
+                if (sub === 'osc') return OSCILLATORS.includes(lk);
+                return MOVING.includes(lk);
+            })
+            .map(k => ({ key: k, val: latest[k] }));
+
+        // If some values live under a nested "details" object (defensive)
+        if (entries.length === 0 && latest.details && typeof latest.details === 'object') {
+            Object.keys(latest.details).forEach(k => {
+                const lk = k.toLowerCase();
+                if ((sub === 'osc' && OSCILLATORS.includes(lk)) || (sub === 'ma' && MOVING.includes(lk))) {
+                    entries.push({ key: k, val: latest.details[k] });
+                }
+            });
+        }
+
+        if (entries.length === 0) {
+            grid.innerHTML = '<p class="meta">No indicators in this group.</p>';
+            return;
+        }
+
+        // Render each indicator
+        grid.innerHTML = entries.map(e => {
+            const key = e.key;
+            const val = e.val;
+            return `
+            <div class="indicator-card">
+                <span class="indicator-label">${prettyLabel(key.toLowerCase())}</span>
+                <span class="indicator-value">${fmt(val, (Math.abs(Number(val))<1e5 && !Number.isInteger(Number(val))) ? 2 : 0)}</span>
+            </div>
         `;
+        }).join('');
     }
 
-    function getColorForRSI(val) {
-        if (val > 70) return '#d9534f'; // Overbought
-        if (val < 30) return '#28a745'; // Oversold
-        return '#fff';
-    }
-
-    // Tab Switcher
-    window.switchTab = function(tabName) {
-        // Buttons
+    /* Tab Switcher (outer tabs) */
+    window.switchTab = function(evt, tabName) {
         document.querySelectorAll('.tech-tab').forEach(b => b.classList.remove('active'));
-        event.target.classList.add('active');
-
-        // Content
+        if (evt && evt.currentTarget) evt.currentTarget.classList.add('active');
         document.querySelectorAll('.tech-content').forEach(c => c.classList.remove('active'));
-        document.getElementById(`tech-${tabName}`).classList.add('active');
+        const content = document.getElementById(`tech-${tabName}`);
+        if (content) content.classList.add('active');
     };
-
     // ==========================================
     // Init
     // ==========================================

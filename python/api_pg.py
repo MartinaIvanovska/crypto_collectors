@@ -165,6 +165,7 @@ def get_forecast(symbol: str, db: Session = Depends(get_db)):
     """
     Returns all predictions for a given symbol from the 'predictions' table.
     """
+    symbol = symbol.upper().strip()
     try:
         results = db.query(Prediction).filter(Prediction.symbol == symbol).order_by(Prediction.date).all()
         if not results:
@@ -180,6 +181,7 @@ def get_technical_analysis(symbol: str, db: Session = Depends(get_db)):
     Fetches the latest technical indicators and signals from the DB
     for 1D, 1W, and 1M timeframes.
     """
+    symbol = symbol.upper().strip()
     try:
         results = db.query(TechnicalAnalysis).filter(TechnicalAnalysis.symbol == symbol).all()
         if not results:

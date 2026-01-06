@@ -331,7 +331,7 @@ if __name__ == "__main__":
     if not symbols:
         logger.warning("Nothing to do.")
         exit()
-
-    run_pipeline(symbols)
+    run_pipeline(["BTC-USD","ETH-USD"])
+    # run_pipeline(symbols)
 
     logger.info("LSTM prediction pipeline completed.")

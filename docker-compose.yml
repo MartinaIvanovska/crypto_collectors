@@ -1,6 +1,21 @@
-version: "3.8"
+version: "3.9"
+
 services:
-  # 1. Spring Boot Application
+  # 1. PostgreSQL Database
+  postgres:
+    image: postgres:16
+    container_name: crypto_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: crypto
+      POSTGRES_USER: crypto_user
+      POSTGRES_PASSWORD: crypto_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  # 2. Spring Boot Application
   spring-app:
     build:
       context: .
@@ -8,15 +23,20 @@ services:
     image: crypto-project:latest
     ports:
       - "8080:8080"
-    volumes:
-      - ./data:/data:rw  # Share data folder
     environment:
-      - PYTHON_API_URL=http://python-service:8000
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/crypto
+      SPRING_DATASOURCE_USERNAME: crypto_user
+      SPRING_DATASOURCE_PASSWORD: crypto_pass
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      PYTHON_API_URL: http://python-service:8000
     depends_on:
+      - postgres
       - python-service
+    volumes:
+      - ./data:/data:rw
     restart: unless-stopped
 
-  # 2. Python Analytics Microservice
+  # 3. Python Analytics Microservice
   python-service:
     build:
       context: .
@@ -24,7 +44,18 @@ services:
     image: crypto-analytics:latest
     ports:
       - "8000:8000"
+    environment:
+      PG_HOST: postgres
+      PG_PORT: 5432
+      PG_DB: crypto
+      PG_USER: crypto_user
+      PG_PASSWORD: crypto_pass
     volumes:
-      - ./data:/data:rw      # Shared DB access
-      - ./models:/models:rw  # Shared Models access
+      - ./data:/data:rw
+      - ./models:/models:rw
+    depends_on:
+      - postgres
     restart: unless-stopped
+
+volumes:
+  pgdata:

@@ -19,4 +19,4 @@ COPY python/sentiment ./sentiment
 EXPOSE 8000
 
 # Run the API
-CMD ["python", "api.py"]
+CMD ["python", "api_pg.py"]
