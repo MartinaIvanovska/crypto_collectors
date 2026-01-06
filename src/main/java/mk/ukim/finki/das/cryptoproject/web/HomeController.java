@@ -19,4 +19,9 @@ public class HomeController {
         return "intro";
     }
 
+    @GetMapping("/whales")
+    public  String whales(){
+        return "whales";
+    }
+
 }
