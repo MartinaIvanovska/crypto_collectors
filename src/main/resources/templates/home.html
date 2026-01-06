@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Crypto Collectors</title>
+
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            margin: 0;
+            color: #e0e0e0;
+            background-color: #121212;
+        }
+
+        .page-container {
+            padding: 48px 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 40px;
+        }
+
+        .hero {
+            width: 100%;
+            max-width: 1000px;
+            background-color: #1e1e1e;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.6);
+            text-align: center;
+        }
+
+        .hero h1 {
+            margin: 0 0 12px 0;
+            font-size: 36px;
+            color: #ffffff;
+        }
+
+        .hero p {
+            margin: 0;
+            color: #aaaaaa;
+            font-size: 15px;
+        }
+
+
+        .card-grid {
+            width: 100%;
+            max-width: 1000px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        .card {
+            background-color: #1e1e1e;
+            border-radius: 14px;
+            padding: 28px;
+            box-shadow: 0 0 12px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card h3 {
+            margin: 0 0 10px 0;
+            font-size: 22px;
+            color: #ffffff;
+        }
+
+        .card p {
+            margin: 0 0 18px 0;
+            color: #aaaaaa;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .card a {
+            align-self: flex-start;
+            text-decoration: none;
+            color: white;
+            background-color: #17a2b8;
+            padding: 7px 16px;
+            border-radius: 5px;
+            font-size: 13px;
+            transition: background 0.2s;
+        }
+
+        .card a:hover {
+            background-color: #117a8b;
+        }
+
+        /* ---------- RESPONSIVE ---------- */
+        @media (max-width: 768px) {
+            .card-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- HEADER -->
+<div th:replace="fragments/header :: header"></div>
+
+<div class="page-container">
+
+    <!-- TOP WIDE CARD -->
+    <div class="hero">
+        <h1>Crypto Collectors</h1>
+        <p>Your all-in-one dashboard for crypto analytics, whale tracking, and market insights.</p>
+    </div>
+
+    <!-- GRID CARDS -->
+    <div class="card-grid">
+
+        <div class="card">
+            <h3>Dashboard</h3>
+            <p>Explore real-time cryptocurrency prices, historical trends, and technical indicators.</p>
+            <a th:href="@{/cryptos}">View Dashboard</a>
+        </div>
+
+        <div class="card">
+            <h3>Whale Movements</h3>
+            <p>Track large on-chain transactions and monitor whale activity across major networks.</p>
+            <a th:href="@{/whales}">View Whale Movements</a>
+        </div>
+
+        <div class="card">
+            <h3>News</h3>
+            <p>Stay updated with the latest crypto news, announcements, and market events.</p>
+            <a th:href="@{/news}">View News</a>
+        </div>
+
+        <div class="card">
+            <h3>Crypto Intro</h3>
+            <p>New to cryptocurrency? Start your journey by learning the basics of crypto terminology right here. </p>
+            <a th:href="@{/intro}">View Intro</a>
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>
