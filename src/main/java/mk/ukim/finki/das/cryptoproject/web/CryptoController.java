@@ -1,6 +1,7 @@
 package mk.ukim.finki.das.cryptoproject.web;
 
 import mk.ukim.finki.das.cryptoproject.model.Daily;
+import mk.ukim.finki.das.cryptoproject.service.CryptoNewsService;
 import mk.ukim.finki.das.cryptoproject.service.CryptoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -19,6 +20,10 @@ public class CryptoController {
 
     @Autowired
     private CryptoService cryptoService;
+
+    @Autowired
+    private CryptoNewsService cryptoNewsService;
+
 
     /**
      * List latest row per symbol (one row per symbol).
@@ -62,6 +67,7 @@ public class CryptoController {
         model.addAttribute("page", page);
         model.addAttribute("symbol", symbol);
         model.addAttribute("latest", latest);
+        model.addAttribute("news", cryptoNewsService.getLatestNewsForSymbol(symbol));
 
         return "history"; //
     }
