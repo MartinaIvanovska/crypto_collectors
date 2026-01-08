@@ -14,6 +14,6 @@ public class CryptoNewsService {
     private CryptoNewsRepository cryptoNewsRepository;
 
     public List<CryptoNews> getLatestNewsForSymbol(String symbol) {
-        return cryptoNewsRepository.findTop20BySymbolOrderByScrapedAtDesc(symbol);
+        return cryptoNewsRepository.findTop10BySymbolOrderByScrapedAtDesc(symbol);
     }
 }

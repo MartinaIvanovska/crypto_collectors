@@ -15,6 +15,8 @@ from technical_analysis.strategy_ta import main as run_technical_analysis_pipeli
 from lstm.lstm_pg import run_pipeline as run_lstm_pipeline
 from on_chain.onchain_dashboard import get_all_metrics, get_whale_movements, exchange_flows
 from sentiment.symbol_sentiment import get_sentiment_sum
+from sentiment.yfinance import main as general_news
+from sentiment.sentiment_symbol_news import main as symbol_news
 from main import gather_all_data, combination
 from data.singleton_db import main as data_refresh
 
@@ -319,6 +321,28 @@ def run_data_refresh():
         return {"status": "data-refresh: completed"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"data-refresh failed: {e}")
+
+@app.post("/admin/general-news")
+def run_general_news():
+    """
+    Trigger the general news sentiment pipeline.
+    """
+    try:
+        general_news()  # call the function from sentiment.yfinance
+        return {"status": "general-news: completed"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"general-news failed: {e}")
+
+@app.post("/admin/symbol-news")
+def run_general_news():
+    """
+    Trigger the general news sentiment pipeline.
+    """
+    try:
+        symbol_news()  # call the function from sentiment.yfinance
+        return {"status": "symbol-news: completed"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"symbol-news failed: {e}")
 
 if __name__ == "__main__":
     # Optional: Create tables on startup if they don't exist

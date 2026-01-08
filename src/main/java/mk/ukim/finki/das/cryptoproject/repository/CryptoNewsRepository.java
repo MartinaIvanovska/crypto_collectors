@@ -7,5 +7,5 @@ import java.util.List;
 
 public interface CryptoNewsRepository extends JpaRepository<CryptoNews, Long> {
 
-    List<CryptoNews> findTop20BySymbolOrderByScrapedAtDesc(String symbol);
+    List<CryptoNews> findTop10BySymbolOrderByScrapedAtDesc(String symbol);
 }

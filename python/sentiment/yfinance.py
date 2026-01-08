@@ -284,6 +284,22 @@ def save_to_database(news_df: pd.DataFrame) -> None:
     avg_confidence = news_df["confidence"].mean()
     print(f"Average confidence score: {avg_confidence:.3f}")
 
+def drop_crypto_news_table():
+    """Drop the crypto_news table if it exists."""
+    engine = get_db_engine()
+    metadata = MetaData()
+    table = define_news_table(metadata)
+    conn = engine.connect()
+    trans = conn.begin()
+    try:
+        table.drop(engine, checkfirst=True)
+        trans.commit()
+        print("Dropped the crypto_news table.")
+    except SQLAlchemyError as e:
+        trans.rollback()
+        print("Error dropping the crypto_news table:", e)
+    finally:
+        conn.close()
 
 # ---------------------------
 # Main
@@ -291,7 +307,7 @@ def save_to_database(news_df: pd.DataFrame) -> None:
 
 def main():
     start_time = time.time()
-
+    drop_crypto_news_table()
     crypto_news_df = collect_crypto_news()
 
     if not crypto_news_df.empty:

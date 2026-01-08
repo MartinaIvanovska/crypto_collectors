@@ -368,7 +368,7 @@ def main():
     print(f"Found {len(symbols)} symbols to scrape: {symbols}")
 
     # For testing, use just a couple of symbols
-    # symbols = ["BTC-USD", "ETH-USD"]
+    symbols = ["BTC-USD", "ETH-USD"]
 
     all_articles = []
     total_saved = 0

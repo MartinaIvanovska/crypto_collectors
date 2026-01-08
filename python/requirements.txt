@@ -13,3 +13,6 @@ requests
 tabulate
 beautifulsoup4
 pydantic
+selenium
+webdriver-manager
+transformers
