@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 import uvicorn
-from fastapi import FastAPI, HTTPException, Query, Depends
+from fastapi import FastAPI, HTTPException, Query, Depends, Body
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 from sqlalchemy import create_engine, text, Column, String, Float, JSON, Integer, desc
@@ -11,13 +11,12 @@ from datetime import date
 
 from fastapi.middleware.cors import CORSMiddleware
 
-from technical_analysis.technical_analysis_pg import main as run_technical_analysis_pipeline
+from technical_analysis.strategy_ta import main as run_technical_analysis_pipeline
 from lstm.lstm_pg import run_pipeline as run_lstm_pipeline
 from on_chain.onchain_dashboard import get_all_metrics, get_whale_movements, exchange_flows
 from sentiment.symbol_sentiment import get_sentiment_sum
 from main import gather_all_data, combination
-
-
+from data.singleton_db import main as data_refresh
 
 app = FastAPI(title="Crypto Analytics Microservice")
 
@@ -219,25 +218,6 @@ def get_sentiment_onchain(symbol: str):
             detail="Analysis failed. Ensure DB is populated and external APIs are reachable."
         )
 
-@app.post("/admin/refresh-pipeline")
-def run_pipeline_manually():
-    """
-    Triggers the heavy calculation tasks (Technical Analysis + LSTM Training) using the new Postgres modules.
-    """
-    if engine is None:
-        raise HTTPException(status_code=503, detail="Database service unavailable.")
-
-    try:
-        # 1. Update Technical Analysis Table
-        run_technical_analysis_pipeline()
-
-        # 2. Update LSTM Predictions
-        run_lstm_pipeline(symbols=["BTC-USD", "ETH-USD"])
-
-        return {"status": "Pipeline execution started/completed (PostgreSQL versions)"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Pipeline execution failed: {str(e)}")
-
 
 @app.get("/api/onchain-metrics/{symbol}", response_model=AllOnChainMetrics)
 def get_aggregated_onchain_metrics(symbol: str):
@@ -279,6 +259,66 @@ def get_latest_whale_movements(limit: int = Query(50, description="...")):
     whales_raw = get_whale_movements(limit=limit)
     return whales_raw
 
+@app.post("/admin/refresh-pipeline")
+def run_pipeline_manually():
+    """
+    Triggers the heavy calculation tasks (Technical Analysis + LSTM Training) using the new Postgres modules.
+    """
+    if engine is None:
+        raise HTTPException(status_code=503, detail="Database service unavailable.")
+
+    try:
+        # 1. Update Technical Analysis Table
+        run_technical_analysis_pipeline()
+
+        # 2. Update LSTM Predictions
+        run_lstm_pipeline(symbols=["BTC-USD", "ETH-USD"])
+
+        return {"status": "Pipeline execution started/completed (PostgreSQL versions)"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Pipeline execution failed: {str(e)}")
+
+
+@app.post("/admin/technical-analysis")
+def run_technical_analysis():
+    """
+    Trigger the Technical Analysis pipeline.
+    """
+    try:
+        run_technical_analysis_pipeline()
+        return {"status": "technical-analysis: completed"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"technical-analysis failed: {e}")
+
+
+@app.post("/admin/lstm")
+def run_lstm(symbols: Optional[List[str]] = Body(None, example=["BTC-USD", "ETH-USD"])):
+    """
+    Trigger the LSTM pipeline.
+    By default will run on ["BTC-USD","ETH-USD"] if no JSON body provided.
+    Example body: { "symbols": ["BTC-USD","ETH-USD","DOGE-USD"] }
+    """
+    if not symbols:
+        symbols = ["BTC-USD", "ETH-USD"]
+    try:
+        run_lstm_pipeline(symbols=symbols)
+        return {"status": "lstm: completed", "symbols": symbols}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"lstm failed: {e}")
+
+@app.post("/admin/data-refresh")
+def run_data_refresh():
+    """
+    Trigger the long-running data ingestion script you provided (saved as data_refresh.py).
+    This will call data_refresh.main() (or a wrapper you expose) and return when it completes.
+    """
+    try:
+        # If you refactor the script to expose a run() or run_data_refresh() function, call that instead.
+        # Here we call main() as in your pasted script (ensure the module is importable).
+        data_refresh()
+        return {"status": "data-refresh: completed"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"data-refresh failed: {e}")
 
 if __name__ == "__main__":
     # Optional: Create tables on startup if they don't exist

@@ -11,3 +11,5 @@ tensorflow
 joblib
 requests
 tabulate
+beautifulsoup4
+pydantic
