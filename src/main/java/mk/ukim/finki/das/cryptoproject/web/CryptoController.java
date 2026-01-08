@@ -35,6 +35,7 @@ public class CryptoController {
             @RequestParam(value = "pageNum", defaultValue = "1") int pageNum,
             @RequestParam(value = "pageSize", defaultValue = "20") int pageSize,
             @RequestParam(value = "prop", defaultValue = "symbol") String prop,
+            @RequestParam(value = "search", required = false) String search,
             Model model) {
         Pageable pageable = null;
         if (prop.equals("symbol")){
@@ -43,8 +44,9 @@ public class CryptoController {
         }else{
             pageable = PageRequest.of(pageNum - 1, pageSize, Sort.by(prop).descending());
         }
-        Page<LatestDto> page = cryptoService.getLatestPerSymbol(pageable);
+        Page<LatestDto> page = cryptoService.getLatestPerSymbol(pageable, search);
         model.addAttribute("page", page);
+        model.addAttribute("search", search);
 
         return "list";
     }
