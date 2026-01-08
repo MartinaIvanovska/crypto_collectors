@@ -325,13 +325,13 @@
                         </select>
                     </div>
                 </div>
-                <div id="candlestick-chart" style="width: 100%; height: 500px;"></div>
+                <div id="candlestick-chart" style="width: 100%; height: 600px;"></div>
             </div>
 
             <div class="card">
                 <h3>LSTM AI Price Forecast (Next 30 Days)</h3>
                 <div id="forecast-container">
-                    <div id="forecast-chart" style="width: 100%; height: 400px;"></div>
+                    <div id="forecast-chart" style="width: 100%; height: 500px;"></div>
                     <p id="forecast-loading" class="loading-text">Loading forecast model...</p>
                 </div>
             </div>
@@ -369,48 +369,66 @@
                 </div>
             </div>
 
+            <!-- NEW: Current Sentiment Score Card (placed below Technical Analysis) -->
+            <div class="card" id="sentiment-card" style="display: block;">
+                <h3>Current Sentiment Score</h3>
+                <div id="sentiment-body">
+                    <p class="loading-text" id="sentiment-loading">Fetching sentiment score...</p>
+                    <div id="sentiment-content" style="display:none;">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <div style="font-size:28px; font-weight:700; color:#fff;" id="sentiment-value">—</div>
+                            <div id="sentiment-label" class="signal-badge signal-neutral">—</div>
+                        </div>
+                        <div class="meta" id="sentiment-meta" style="margin-top:8px; color:#bbb;">Source: Sentiment Summary API</div>
+                        <div style="margin-top:10px;">
+                            <small class="meta">Interpretation legend: ≤ -4 = SELL, -3 to +3 = HOLD, ≥ 4 = BUY</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
-<div class="card" style="width: 100%; margin-top: 20px;">
-    <h3>Latest News for <span th:text="${symbol}">SYMBOL</span></h3>
+    <div class="card" style="width: 100%; margin-top: 20px;">
+        <h3>Latest News for <span th:text="${symbol}">SYMBOL</span></h3>
 
-    <div th:if="${!#lists.isEmpty(news)}" class="news-list">
+        <div th:if="${!#lists.isEmpty(news)}" class="news-list">
 
-        <div class="news-item" th:each="n : ${news}">
-            <img th:if="${n.image != null}" th:src="${n.image}" alt="news image"/>
+            <div class="news-item" th:each="n : ${news}">
+                <img th:if="${n.image != null}" th:src="${n.image}" alt="news image"/>
 
-            <div class="news-body">
-                <h4>
-                    <span th:text="${n.title}">News title</span>
+                <div class="news-body">
+                    <h4>
+                        <span th:text="${n.title}">News title</span>
 
-                    <span th:classappend="
+                        <span th:classappend="
                     ${n.sentiment == 'positive' || n.sentiment == 'pos'} ? ' news-sentiment sentiment-pos' :
                     (${n.sentiment == 'negative' || n.sentiment == 'neg'} ? ' news-sentiment sentiment-neg' :
                     ' news-sentiment sentiment-neutral')"
-                          th:text="${n.sentiment != null} ? ${n.sentiment} : ''">
+                              th:text="${n.sentiment != null} ? ${n.sentiment} : ''">
                 </span>
-                </h4>
+                    </h4>
 
-                <div class="news-meta">
-                    <span th:text="${n.source}">source</span>
-                    <span>•</span>
-<!--                    <span th:text="${#temporals.format(n.scrapedAt, 'yyyy-MM-dd HH:mm')}"></span>-->
+                    <div class="news-meta">
+                        <span th:text="${n.source}">source</span>
+                        <span>•</span>
+                        <!--                    <span th:text="${#temporals.format(n.scrapedAt, 'yyyy-MM-dd HH:mm')}"></span>-->
 
-                    <span th:if="${n.confidence != null}" style="margin-left:8px;">
+                        <span th:if="${n.confidence != null}" style="margin-left:8px;">
                     (conf:
                     <span th:text="${#numbers.formatDecimal(n.confidence, 1, 2)}"></span>)
                 </span>
+                    </div>
+
+                    <a th:href="${n.url}" target="_blank">
+                        <button class="read-more-btn">Read more</button>
+                    </a>
                 </div>
-
-                <a th:href="${n.url}" target="_blank">
-                    <button class="read-more-btn">Read more</button>
-                </a>
             </div>
-        </div>
 
+        </div>
     </div>
-</div>
 
     <div class="card" style="width: 100%; margin-top: 20px;">
         <h3>Historical Data Log</h3>
@@ -523,9 +541,6 @@
 
             const futureDates = forecast.map(d => d.date);
             const futurePrices = forecast.map(d => d.predicted_close);
-            // const futurePrices = forecast.map(d =>
-            //     Math.max(d.predicted_close, 0)
-            // );
 
             document.getElementById('forecast-loading').style.display = 'none';
 
@@ -822,6 +837,64 @@
         const content = document.getElementById(`tech-${tabName}`);
         if (content) content.classList.add('active');
     };
+
+    // ==========================================
+    // 5. Fetch & Render Current Sentiment Score
+    // ==========================================
+    async function loadSentiment() {
+        const loadingEl = document.getElementById('sentiment-loading');
+        const contentEl = document.getElementById('sentiment-content');
+        const valueEl = document.getElementById('sentiment-value');
+        const labelEl = document.getElementById('sentiment-label');
+        const metaEl = document.getElementById('sentiment-meta');
+
+        try {
+            // endpoint example: http://localhost:8000/api/sentiment-sum/BTC-USD
+            const res = await fetch(`${apiBaseUrl}/api/sentiment-sum/${symbol}`);
+            if (!res.ok) throw new Error('Sentiment API error');
+            const payload = await res.json();
+
+            // payload expected: { "symbol": "BTC-USD", "sentiment_sum": 1 }
+            const raw = payload && (payload.sentiment_sum !== undefined) ? payload.sentiment_sum : null;
+            const score = raw === null ? null : Number(raw);
+
+            // Map to label according to your rules:
+            // -10 to -4 : SELL, -3 to +3 : HOLD, (we interpret +4 and above as BUY)
+            let label = '—';
+            let cls = 'signal-neutral';
+            if (score !== null && !Number.isNaN(score)) {
+                if (score <= -4) {
+                    label = 'SELL';
+                    cls = 'signal-sell';
+                } else if (score >= 4) {
+                    // I interpreted your text "above +4" as >= 4 for practical UI behaviour.
+                    label = 'BUY';
+                    cls = 'signal-buy';
+                } else {
+                    label = 'HOLD';
+                    cls = 'signal-neutral';
+                }
+            }
+
+            // Render
+            loadingEl.style.display = 'none';
+            contentEl.style.display = 'block';
+            valueEl.innerText = (score === null || Number.isNaN(score)) ? '—' : score;
+            labelEl.innerText = label;
+
+            // set classes (remove previous signal-*)
+            labelEl.classList.remove('signal-sell','signal-buy','signal-neutral');
+            labelEl.classList.add(cls);
+
+            // meta: show fetched symbol & timestamp if provided
+            metaEl.innerText = `Source: Sentiment Summary API • ${payload.symbol || symbol}`;
+
+        } catch (e) {
+            console.error('Sentiment load error:', e);
+            loadingEl.innerText = 'Sentiment data unavailable.';
+        }
+    }
+
     // ==========================================
     // Init
     // ==========================================
@@ -832,6 +905,7 @@
         loadForecast();
         loadOnChain();
         loadTechnical();
+        loadSentiment(); // NEW: fetch sentiment on load
     });
 
     document.getElementById('chartType').addEventListener('change', function() {

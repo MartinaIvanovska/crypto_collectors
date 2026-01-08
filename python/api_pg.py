@@ -14,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from technical_analysis.technical_analysis_pg import main as run_technical_analysis_pipeline
 from lstm.lstm_pg import run_pipeline as run_lstm_pipeline
 from on_chain.onchain_dashboard import get_all_metrics, get_whale_movements, exchange_flows
+from sentiment.symbol_sentiment import get_sentiment_sum
 from main import gather_all_data, combination
 
 
@@ -95,7 +96,6 @@ class SentimentOnChainData(BaseModel):
     sentiment_score: float
     onchain_score: float
     metrics: Dict[str, Any]
-    whale_alerts: List[Dict[str, Any]]
 
 
 class AllOnChainMetrics(BaseModel):
@@ -153,6 +153,10 @@ class TechnicalAnalysisData(BaseModel):
     vol_sma20: Optional[float]
     signal: Optional[str]
 
+class SentimentSumResponse(BaseModel):
+    symbol: str
+    sentiment_sum: int
+
 
 # --- API Endpoints ---
 
@@ -191,30 +195,29 @@ def get_technical_analysis(symbol: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Failed to fetch technical analysis: {e}")
 
 @app.get("/api/sentiment-onchain/{symbol}", response_model=SentimentOnChainData)
-def get_sentiment_onchain(symbol: str, keyword: str = Query(..., description="e.g. Bitcoin")):
+def get_sentiment_onchain(symbol: str):
     """
     Real-time aggregation of On-Chain Metrics + Sentiment Analysis.
     """
     try:
-        metrics_dict, metrics_vars = gather_all_data(symbol, keyword)
+        metrics_dict, metrics_vars = gather_all_data(symbol)
         sentiment_sum = metrics_vars[-1]
         result = combination(metrics_dict, sentiment_sum)
-        whales = get_whale_movements(limit=5)
 
         return {
             "symbol": symbol,
-            "final_score": result['final_score'],
-            "signal": result['signal'],
-            "onchain_score": result['onchain_score'],
-            "sentiment_score": result['sentiment_score'],
-            "metrics": result['scaled_metrics'],
-            "whale_alerts": whales
+            "final_score": result["final_score"],
+            "signal": result["signal"],
+            "onchain_score": result["onchain_score"],
+            "sentiment_score": result["sentiment_score"],
+            "metrics": result["scaled_metrics"],
         }
     except Exception as e:
         print(f"Error in /api/sentiment-onchain: {e}")
-        raise HTTPException(status_code=500,
-                            detail="Analysis failed. Ensure DB is populated and external APIs are reachable.")
-
+        raise HTTPException(
+            status_code=500,
+            detail="Analysis failed. Ensure DB is populated and external APIs are reachable."
+        )
 
 @app.post("/admin/refresh-pipeline")
 def run_pipeline_manually():
@@ -245,6 +248,30 @@ def get_aggregated_onchain_metrics(symbol: str):
         return AllOnChainMetrics.model_validate(all_data)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch on-chain metrics for {symbol}: {e}")
+
+@app.get("/api/sentiment-sum/{symbol}", response_model=SentimentSumResponse)
+def get_symbol_sentiment_sum(symbol: str):
+    """
+    Returns sentiment sum for a symbol
+    positive = +1
+    negative = -1
+    neutral  = 0
+    """
+    try:
+        symbol = symbol.upper().strip()
+        sentiment_sum = int(get_sentiment_sum(symbol))
+
+        return {
+            "symbol": symbol,
+            "sentiment_sum": sentiment_sum
+        }
+
+    except Exception as e:
+        print(f"Error in /api/sentiment-sum: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to compute sentiment sum. Ensure DB is reachable."
+        )
 
 
 @app.get("/api/whale-reports", response_model=List[Dict[str, Any]])
