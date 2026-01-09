@@ -32,26 +32,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-PG_HOST = os.environ.get("PG_HOST", "localhost")
-PG_PORT = int(os.environ.get("PG_PORT", 5432))
-PG_DB = os.environ.get("PG_DB", "crypto")
-PG_USER = os.environ.get("PG_USER", "crypto_user")
-PG_PASSWORD = os.environ.get("PG_PASSWORD", "crypto_pass")
-PG_SSLMODE = os.environ.get("PG_SSLMODE", "require")  # Azure requires sslmode=require
+PG_HOST = "kriptoserver.postgres.database.azure.com"
+PG_PORT = 5432
+PG_DB = "crypto"
+PG_USER = "adminmartina"  # exactly same as psycopg2
+PG_PASSWORD = "Andrejcar123!"
+PG_SSLMODE = "require"
 
-# --- Encode password to handle special characters ---
-PG_PASSWORD_ESCAPED = quote_plus(PG_PASSWORD)
-
-# --- Create SQLAlchemy URL safely ---
 DATABASE_URL = URL.create(
     "postgresql+psycopg2",
     username=PG_USER,
-    password=PG_PASSWORD_ESCAPED,
+    password=PG_PASSWORD,  # pass raw, don't quote_plus
     host=PG_HOST,
     port=PG_PORT,
     database=PG_DB,
     query={"sslmode": PG_SSLMODE}
 )
+
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 
 # --- Create engine and session ---
 try:

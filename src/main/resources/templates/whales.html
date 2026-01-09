@@ -50,7 +50,7 @@
     </style>
 </head>
 <body
-        data-api-url="http://localhost:8000/api/whale-reports?limit=50"
+        data-api-url="https://kriptoservis-h3f8hkcce8d8dqf3.norwayeast-01.azurewebsites.net/api/whale-reports?limit=50"
         data-details-template="/reports/{id}"
 >
 <!-- HEADER -->
@@ -79,7 +79,7 @@
     // Configuration helpers
     // --------------------
     // Priority: ?api=... query param -> window.API_URL (if set before script) -> body[data-api-url] -> default constant
-    const DEFAULT_API = 'http://localhost:8000/api/whale-reports?limit=50';
+    const DEFAULT_API = 'https://kriptoservis-h3f8hkcce8d8dqf3.norwayeast-01.azurewebsites.net/api/whale-reports?limit=50';
 
     function getConfiguredApiUrl(limit) {
         const urlParams = new URLSearchParams(window.location.search);

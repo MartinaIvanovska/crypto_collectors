@@ -24,15 +24,13 @@ services:
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/crypto
-      SPRING_DATASOURCE_USERNAME: crypto_user
-      SPRING_DATASOURCE_PASSWORD: crypto_pass
+      SPRING_DATASOURCE_URL: jdbc:postgresql://kriptoserver.postgres.database.azure.com:5432/crypto?sslmode=require
+      SPRING_DATASOURCE_USERNAME: adminmartina
+      SPRING_DATASOURCE_PASSWORD: Andrejcar123!
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
-      PYTHON_API_URL: http://python-service:8000
-    depends_on:
-      - postgres
-      - python-service
+      PYTHON_API_URL: https://kriptoservis-h3f8hkcce8d8dqf3.norwayeast-01.azurewebsites.net
     restart: unless-stopped
+
 
   # 3. Python Analytics Microservice
   python-service:

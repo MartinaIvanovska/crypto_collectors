@@ -24,9 +24,9 @@ DB_CONFIG = {
     "port": int(os.getenv("PG_PORT", 5432)),
     "dbname": os.getenv("PG_DB", "crypto"),
     # Azure requires user@servername
-    "user": os.getenv("PG_USER", "adminmartina@kriptoserver"),
+    "user": os.getenv("PG_USER", "adminmartina"),
     # Use PG_PASSWORD or PG_PASS (ensure it's set in env)
-    "password": os.getenv("PG_PASSWORD", os.getenv("PG_PASS", "YourStrongPassword")),
+    "password": os.getenv("PG_PASSWORD", "Andrejcar123!"),
     "sslmode": os.getenv("PG_SSLMODE", "require")  # Azure requires SSL
 }
 SUMMARY_CSV = os.getenv("SUMMARY_CSV", "completeness_report.csv")

@@ -44,7 +44,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy source code
 COPY python/ .
-COPY python/sentiment ./sentiment
 
 # Expose port
 EXPOSE 8000
