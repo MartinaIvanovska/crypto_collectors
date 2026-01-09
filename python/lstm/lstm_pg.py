@@ -8,6 +8,7 @@ import pandas as pd
 from joblib import dump, load
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_percentage_error
+from sqlalchemy import create_engine, text
 
 import psycopg2
 from psycopg2.extras import execute_values
@@ -16,16 +17,22 @@ from tensorflow.keras.layers import LSTM, Dense, Dropout
 from tensorflow.keras.callbacks import EarlyStopping
 import tensorflow as tf
 
-gpus = tf.config.list_physical_devices('GPU')
-if gpus:
-    try:
-        for gpu in gpus:
-            tf.config.experimental.set_memory_growth(gpu, True)
-        print(f"Using GPU(s): {gpus}")
-    except RuntimeError as e:
-        print(e)
-else:
-    print("No GPU found, using CPU")
+import os
+from urllib.parse import quote_plus
+from sqlalchemy import create_engine
+import pandas as pd
+from sqlalchemy.engine import Engine
+
+# gpus = tf.config.list_physical_devices('GPU')
+# if gpus:
+#     try:
+#         for gpu in gpus:
+#             tf.config.experimental.set_memory_growth(gpu, True)
+#         print(f"Using GPU(s): {gpus}")
+#     except RuntimeError as e:
+#         print(e)
+# else:
+#     print("No GPU found, using CPU")
 
 
 # --------------------------------------------------
@@ -34,14 +41,33 @@ else:
 BASE_DIR = os.path.abspath(os.path.join(__file__, ".."))
 MODEL_DIR = os.path.join(BASE_DIR, "models")
 os.makedirs(MODEL_DIR, exist_ok=True)
+from sqlalchemy.engine import URL
 
-PG_CONFIG = {
-    "host": os.getenv("PG_HOST", "localhost"),
-    "port": int(os.getenv("PG_PORT", 5432)),
-    "dbname": os.getenv("PG_DB", "crypto"),
-    "user": os.getenv("PG_USER", "crypto_user"),
-    "password": os.getenv("PG_PASS", "crypto_pass"),
-}
+def get_db_engine():
+    PG_HOST = "kriptoserver.postgres.database.azure.com"
+    PG_PORT = 5432
+    PG_DB = "crypto"
+    PG_USER = "adminmartina"  # exactly same as psycopg2
+    PG_PASSWORD = "Andrejcar123!"
+    PG_SSLMODE = "require"
+
+    DATABASE_URL = URL.create(
+        "postgresql+psycopg2",
+        username=PG_USER,
+        password=PG_PASSWORD,  # pass raw, don't quote_plus
+        host=PG_HOST,
+        port=PG_PORT,
+        database=PG_DB,
+        query={"sslmode": PG_SSLMODE}
+    )
+
+    engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+
+    # Test the connection
+    with engine.connect() as conn:
+        result = conn.execute(text("SELECT 1"))  # ✅
+        print(result.fetchone())
+    return engine
 
 DEFAULT_LOOKBACK = 30
 DEFAULT_FORECAST_DAYS = 10
@@ -70,7 +96,8 @@ def scaler_path(symbol, lookback):
 # --------------------------------------------------
 
 def get_pg_conn():
-    return psycopg2.connect(**PG_CONFIG)
+    engine = get_db_engine()
+    return engine.raw_connection()
 
 
 def ensure_predictions_table():
@@ -334,7 +361,7 @@ if __name__ == "__main__":
     ensure_predictions_table()
 
     # Example: process a small set
-    symbols_to_run = ["BTC-USD", "ETH-USD"]
+    symbols_to_run = ["BTC-USD"] #, "ETH-USD"
 
     all_symbols = get_all_symbols()
 

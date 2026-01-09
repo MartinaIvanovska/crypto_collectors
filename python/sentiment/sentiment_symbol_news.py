@@ -15,18 +15,33 @@ from datetime import datetime
 import uuid
 import pandas as pd
 from transformers import pipeline
-
+from urllib.parse import quote_plus
+from sqlalchemy.engine import URL
 
 def get_db_engine():
-    """Create database engine"""
-    host = os.environ.get("PG_HOST", "localhost")
-    port = int(os.environ.get("PG_PORT", 5432))
-    db = os.environ.get("PG_DB", "crypto")
-    user = os.environ.get("PG_USER", "crypto_user")
-    password = os.environ.get("PG_PASSWORD", "crypto_pass")
+    PG_HOST = "kriptoserver.postgres.database.azure.com"
+    PG_PORT = 5432
+    PG_DB = "crypto"
+    PG_USER = "adminmartina"  # exactly same as psycopg2
+    PG_PASSWORD = "Andrejcar123!"
+    PG_SSLMODE = "require"
 
-    url = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{db}"
-    engine = create_engine(url, pool_pre_ping=True)
+    DATABASE_URL = URL.create(
+        "postgresql+psycopg2",
+        username=PG_USER,
+        password=PG_PASSWORD,  # pass raw, don't quote_plus
+        host=PG_HOST,
+        port=PG_PORT,
+        database=PG_DB,
+        query={"sslmode": PG_SSLMODE}
+    )
+
+    engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+
+    # Test the connection
+    with engine.connect() as conn:
+        result = conn.execute(text("SELECT 1"))  # ✅
+        print(result.fetchone())
     return engine
 
 

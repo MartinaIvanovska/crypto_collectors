@@ -16,3 +16,6 @@ pydantic
 selenium
 webdriver-manager
 transformers
+lxml
+torch
+tf-keras

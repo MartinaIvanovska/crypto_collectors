@@ -8,6 +8,7 @@ from sqlalchemy import create_engine, text, Column, String, Float, JSON, Integer
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 from sqlalchemy.exc import OperationalError
 from datetime import date
+from urllib.parse import quote_plus
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -19,6 +20,7 @@ from sentiment.yfinance import main as general_news
 from sentiment.sentiment_symbol_news import main as symbol_news
 from main import gather_all_data, combination
 from data.singleton_db import main as data_refresh
+from sqlalchemy.engine import URL
 
 app = FastAPI(title="Crypto Analytics Microservice")
 
@@ -30,29 +32,44 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Configuration for PostgreSQL ---
 PG_HOST = os.environ.get("PG_HOST", "localhost")
 PG_PORT = int(os.environ.get("PG_PORT", 5432))
 PG_DB = os.environ.get("PG_DB", "crypto")
 PG_USER = os.environ.get("PG_USER", "crypto_user")
 PG_PASSWORD = os.environ.get("PG_PASSWORD", "crypto_pass")
+PG_SSLMODE = os.environ.get("PG_SSLMODE", "require")  # Azure requires sslmode=require
 
-# SQLAlchemy connection string
-DATABASE_URL = (
-    f"postgresql+psycopg2://{PG_USER}:{PG_PASSWORD}"
-    f"@{PG_HOST}:{PG_PORT}/{PG_DB}"
+# --- Encode password to handle special characters ---
+PG_PASSWORD_ESCAPED = quote_plus(PG_PASSWORD)
+
+# --- Create SQLAlchemy URL safely ---
+DATABASE_URL = URL.create(
+    "postgresql+psycopg2",
+    username=PG_USER,
+    password=PG_PASSWORD_ESCAPED,
+    host=PG_HOST,
+    port=PG_PORT,
+    database=PG_DB,
+    query={"sslmode": PG_SSLMODE}
 )
 
+# --- Create engine and session ---
 try:
     engine = create_engine(DATABASE_URL, pool_pre_ping=True)
-    TECHNICAL_ANALYSIS_TABLE = "technical_analysis"
-    PREDICTIONS_TABLE = "predictions"
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     Base = declarative_base()
-except OperationalError as e:
-    print(f"FATAL: Could not connect to PostgreSQL: {e}")
+    print("✅ PostgreSQL connection setup successful")
+except Exception as e:
     engine = None
+    print(f"❌ FATAL: Could not connect to PostgreSQL: {e}")
 
+# --- Dependency for FastAPI ---
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 class Prediction(Base):
     __tablename__ = "predictions"

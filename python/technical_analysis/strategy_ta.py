@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import numpy as np
 import ta
@@ -5,22 +6,35 @@ from multiprocessing import Pool
 from sqlalchemy import create_engine, text
 from tqdm import tqdm
 from abc import ABC, abstractmethod
+from urllib.parse import quote_plus
+from sqlalchemy.engine import URL
 
 # ==============================
 # PostgreSQL configuration
 # ==============================
-PG_HOST = "localhost"
+PG_HOST = "kriptoserver.postgres.database.azure.com"
 PG_PORT = 5432
 PG_DB = "crypto"
-PG_USER = "crypto_user"
-PG_PASSWORD = "crypto_pass"
+PG_USER = "adminmartina"  # exactly same as psycopg2
+PG_PASSWORD = "Andrejcar123!"
+PG_SSLMODE = "require"
 
-DATABASE_URL = (
-    f"postgresql+psycopg2://{PG_USER}:{PG_PASSWORD}"
-    f"@{PG_HOST}:{PG_PORT}/{PG_DB}"
+DATABASE_URL = URL.create(
+    "postgresql+psycopg2",
+    username=PG_USER,
+    password=PG_PASSWORD,  # pass raw, don't quote_plus
+    host=PG_HOST,
+    port=PG_PORT,
+    database=PG_DB,
+    query={"sslmode": PG_SSLMODE}
 )
 
 engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+
+# Test the connection
+with engine.connect() as conn:
+    result = conn.execute(text("SELECT 1"))  # ✅
+    print(result.fetchone())
 
 SOURCE_TABLE = "daily"
 TARGET_TABLE = "technical_analysis"

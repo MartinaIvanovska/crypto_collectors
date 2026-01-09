@@ -43,15 +43,15 @@ services:
     ports:
       - "8000:8000"
     environment:
-      PG_HOST: postgres
-      PG_PORT: 5432
+      PG_USER: adminmartina
+      PG_PASSWORD: Andrejcar123!
+      PG_HOST: kriptoserver.postgres.database.azure.com
       PG_DB: crypto
-      PG_USER: crypto_user
-      PG_PASSWORD: crypto_pass
+      PG_PORT: 5432
+      PG_SSLMODE: require
+
     volumes:
       - ./python/lstm/models:/app/lstm/models
-    depends_on:
-      - postgres
     restart: unless-stopped
 
 volumes:

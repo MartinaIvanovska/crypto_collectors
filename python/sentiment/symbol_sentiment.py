@@ -1,16 +1,32 @@
 import os
 from sqlalchemy import create_engine, text
+from urllib.parse import quote_plus
+from sqlalchemy.engine import URL
 
 def get_db_engine():
-    host = os.environ.get("PG_HOST", "localhost")
-    port = int(os.environ.get("PG_PORT", 5432))
-    db = os.environ.get("PG_DB", "crypto")
-    user = os.environ.get("PG_USER", "crypto_user")
-    password = os.environ.get("PG_PASSWORD", "crypto_pass")
+    PG_HOST = os.environ.get("PG_HOST", "localhost")
+    PG_PORT = int(os.environ.get("PG_PORT", 5432))
+    PG_DB = os.environ.get("PG_DB", "crypto")
+    PG_USER = os.environ.get("PG_USER", "crypto_user")
+    PG_PASSWORD = os.environ.get("PG_PASSWORD", "crypto_pass")
+    PG_SSLMODE = os.environ.get("PG_SSLMODE", "require")  # Azure requires sslmode=require
 
-    url = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{db}"
+    # --- Encode password to handle special characters ---
+    PG_PASSWORD_ESCAPED = quote_plus(PG_PASSWORD)
+
+    # --- Create SQLAlchemy URL safely ---
+    url = URL.create(
+        "postgresql+psycopg2",
+        username=PG_USER,
+        password=PG_PASSWORD_ESCAPED,
+        host=PG_HOST,
+        port=PG_PORT,
+        database=PG_DB,
+        query={"sslmode": PG_SSLMODE}
+    )
     engine = create_engine(url, pool_pre_ping=True)
     return engine
+
 
 
 def get_sentiment_sum(symbol: str) -> int:

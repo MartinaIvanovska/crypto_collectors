@@ -20,13 +20,15 @@ from psycopg2 import pool as pg_pool
 
 # --- CONFIGURATION (edit or override with env vars) ---
 DB_CONFIG = {
-    "host": os.getenv("PG_HOST", "localhost"),
+    "host": os.getenv("PG_HOST", "kriptoserver.postgres.database.azure.com"),  # Azure endpoint
     "port": int(os.getenv("PG_PORT", 5432)),
     "dbname": os.getenv("PG_DB", "crypto"),
-    "user": os.getenv("PG_USER", "crypto_user"),
-    "password": os.getenv("PG_PASS", "crypto_pass"),
+    # Azure requires user@servername
+    "user": os.getenv("PG_USER", "adminmartina@kriptoserver"),
+    # Use PG_PASSWORD or PG_PASS (ensure it's set in env)
+    "password": os.getenv("PG_PASSWORD", os.getenv("PG_PASS", "YourStrongPassword")),
+    "sslmode": os.getenv("PG_SSLMODE", "require")  # Azure requires SSL
 }
-
 SUMMARY_CSV = os.getenv("SUMMARY_CSV", "completeness_report.csv")
 
 WORKERS = int(os.getenv("WORKERS", 50))
