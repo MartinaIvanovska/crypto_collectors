@@ -170,6 +170,8 @@ def get_whale_movements(limit: int = 5, whale_url = WHALE_ALERT_URL ) -> List[Di
 # -----------------------------
 
 def get_all_metrics(symbol: str) -> Dict:
+    if "-" in symbol:
+        symbol = symbol.split("-")[0]
     metrics = fetch_coinmetrics(symbol, ["AdrActCnt", "TxCnt", "HashRate", "CapMVRVCur"])
 
     return {

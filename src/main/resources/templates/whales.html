@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Whale Reports</title>
+    <style>
+        :root{
+            --bg: #121212;
+            --card: #1e1e1e;
+            --muted: #aaaaaa;
+            --accent: #17a2b8;
+            --accent-hover: #117a8b;
+            --text: #e0e0e0;
+            --radius: 14px;
+        }
+        html,body{height:100%;margin:0;font-family:Arial, Helvetica, sans-serif;background:var(--bg);color:var(--text);}
+        .page-container{padding:48px 24px;display:flex;flex-direction:column;align-items:center;gap:32px;min-height:100%;}
+        .hero{
+            width:100%;max-width:1000px;background:var(--card);border-radius:16px;padding:36px;box-shadow:0 0 15px rgba(0,0,0,0.6);text-align:center;
+        }
+        .hero h1{margin:0 0 10px 0;font-size:32px;color:white;}
+        .hero p{margin:0;color:var(--muted);font-size:14px;}
+        .controls{display:flex;gap:12px;align-items:center;justify-content:center;margin-top:12px;}
+        .controls input[type="number"]{width:90px;padding:8px;border-radius:8px;border:1px solid #2b2b2b;background:#0f0f0f;color:var(--text);}
+        .controls button{padding:8px 14px;border-radius:8px;border:none;background:var(--accent);color:white;cursor:pointer;}
+        .controls button:hover{background:var(--accent-hover);}
+        .status{color:var(--muted);font-size:13px;margin-top:8px;text-align:center;}
+        .card-grid{
+            width:100%;max-width:1000px;display:grid;grid-template-columns:repeat(2,1fr);gap:20px;
+        }
+        .card{
+            background:var(--card);border-radius:var(--radius);padding:20px;box-shadow:0 0 12px rgba(0,0,0,0.5);display:flex;flex-direction:column;gap:12px;
+        }
+        .card-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
+        .card h3{margin:0;font-size:18px;color:white;}
+        .badge{font-size:12px;padding:6px 8px;border-radius:999px;background:#063c3f;color:#bff0f6;}
+        .card p{margin:0;color:var(--muted);font-size:14px;line-height:1.4;}
+        .amounts{display:flex;flex-direction:column;gap:6px;}
+        .amount-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);}
+        .amount-symbol{font-weight:700;color:#fff;margin-right:8px;}
+        .card-footer{display:flex;justify-content:space-between;align-items:center;margin-top:6px;}
+        .card a{color:white;background:var(--accent);text-decoration:none;padding:7px 12px;border-radius:6px;font-size:13px;}
+        .card a:hover{background:var(--accent-hover);}
+        .muted-small{font-size:12px;color:var(--muted)}
+        @media (max-width:768px){
+            .card-grid{grid-template-columns:1fr;}
+            .hero h1{font-size:26px;}
+        }
+    </style>
+</head>
+<body
+        data-api-url="http://localhost:8000/api/whale-reports?limit=50"
+        data-details-template="/reports/{id}"
+>
+<!-- HEADER -->
+<div th:replace="fragments/header :: header"></div>
+
+<div class="page-container">
+    <div class="hero">
+        <h1>Whale News</h1>
+        <p>Live feed of large on-chain transactions and official mints.</p>
+
+        <div class="controls" style="margin-top:14px;">
+            <label style="color:var(--muted);font-size:13px;">Limit
+                <input id="limitInput" type="number" min="1" max="200" value="50" />
+            </label>
+            <button id="refreshBtn" title="Reload">Refresh</button>
+        </div>
+
+        <div id="status" class="status">Loading latest whale reports…</div>
+    </div>
+
+    <div id="grid" class="card-grid" aria-live="polite"></div>
+</div>
+
+<script>
+    // --------------------
+    // Configuration helpers
+    // --------------------
+    // Priority: ?api=... query param -> window.API_URL (if set before script) -> body[data-api-url] -> default constant
+    const DEFAULT_API = 'http://localhost:8000/api/whale-reports?limit=50';
+
+    function getConfiguredApiUrl(limit) {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('api')) {
+            // allow overriding the full endpoint via query param for testing/deploy
+            return urlParams.get('api');
+        }
+        if (window.API_URL) return replaceLimitInUrl(window.API_URL, limit);
+        const bodyApi = document.body.dataset.apiUrl;
+        if (bodyApi) return replaceLimitInUrl(bodyApi, limit);
+        return replaceLimitInUrl(DEFAULT_API, limit);
+    }
+
+    function replaceLimitInUrl(url, limit) {
+        try {
+            // if url contains "limit=" update it, otherwise add param
+            const u = new URL(url, window.location.origin);
+            u.searchParams.set('limit', String(limit));
+            return u.toString();
+        } catch (e) {
+            // fallback: naive string replace / append
+            if (url.includes('limit=')) {
+                return url.replace(/limit=\d+/, 'limit=' + encodeURIComponent(limit));
+            } else {
+                return url + (url.includes('?') ? '&' : '?') + 'limit=' + encodeURIComponent(limit);
+            }
+        }
+    }
+
+    // --------------------
+    // Rendering utils
+    // --------------------
+    const grid = document.getElementById('grid');
+    const statusEl = document.getElementById('status');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const limitInput = document.getElementById('limitInput');
+
+    function formatDateFromUnix(tsSeconds) {
+        // assuming tsSeconds is unix seconds (10-digit)
+        const d = new Date(Number(tsSeconds) * 1000);
+        // locale-friendly short format, with fallback
+        return d.toLocaleString();
+    }
+
+    function fmtUsd(value) {
+        if (value === null || value === undefined || Number.isNaN(Number(value))) return '-';
+        try {
+            return new Intl.NumberFormat(undefined, {style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(value));
+        } catch (e) {
+            return '$' + Number(value).toLocaleString();
+        }
+    }
+
+    function createCard(report) {
+        const card = document.createElement('article');
+        card.className = 'card';
+
+        // Header: primary symbol + official badge
+        const header = document.createElement('div');
+        header.className = 'card-header';
+        const primarySymbol = report.amounts && report.amounts[0] ? report.amounts[0].symbol : '—';
+        const title = document.createElement('h3');
+        title.textContent = `${primarySymbol} — ${report.text || 'Whale activity'}`;
+        header.appendChild(title);
+        if (report.official) {
+            const badge = document.createElement('span');
+            badge.className = 'badge';
+            badge.textContent = 'Official';
+            header.appendChild(badge);
+        }
+        card.appendChild(header);
+
+        // timestamp + text
+        const when = document.createElement('p');
+        when.innerHTML = `<span class="muted-small">${formatDateFromUnix(report.timestamp)}</span>`;
+        card.appendChild(when);
+
+        // amounts
+        if (Array.isArray(report.amounts) && report.amounts.length) {
+            const amountsWrap = document.createElement('div');
+            amountsWrap.className = 'amounts';
+            report.amounts.forEach(a => {
+                const row = document.createElement('div');
+                row.className = 'amount-row';
+                const left = document.createElement('div');
+                left.innerHTML = `<span class="amount-symbol">${a.symbol}</span> ${Number(a.amount).toLocaleString()}`;
+                const right = document.createElement('div');
+                right.textContent = fmtUsd(a.value_usd);
+                row.appendChild(left);
+                row.appendChild(right);
+                amountsWrap.appendChild(row);
+            });
+            card.appendChild(amountsWrap);
+        }
+
+        // Footer: id + details link if template available
+        const footer = document.createElement('div');
+        footer.className = 'card-footer';
+        const idSpan = document.createElement('div');
+        idSpan.className = 'muted-small';
+        idSpan.textContent = `ID: ${report.id}`;
+        footer.appendChild(idSpan);
+
+        // const detailsTemplate = document.body.dataset.detailsTemplate;
+        // if (detailsTemplate) {
+        //     const link = document.createElement('a');
+        //     link.href = detailsTemplate.replace('{id}', encodeURIComponent(String(report.id)));
+        //     link.textContent = 'View details';
+        //     footer.appendChild(link);
+        // }
+        card.appendChild(footer);
+
+        return card;
+    }
+
+    // --------------------
+    // Fetch + display
+    // --------------------
+    let currentAbortController = null;
+
+    async function fetchAndRender(limit = 50) {
+        // abort previous if still running
+        if (currentAbortController) currentAbortController.abort();
+        currentAbortController = new AbortController();
+        const signal = currentAbortController.signal;
+
+        const apiUrl = getConfiguredApiUrl(limit);
+        statusEl.textContent = 'Loading whale reports…';
+        grid.innerHTML = '';
+
+        try {
+            const res = await fetch(apiUrl, { signal, credentials: 'same-origin' });
+            if (!res.ok) {
+                throw new Error(`Server returned ${res.status} ${res.statusText}`);
+            }
+            const data = await res.json();
+
+            if (!Array.isArray(data) || data.length === 0) {
+                statusEl.textContent = 'No reports found.';
+                return;
+            }
+
+            // render
+            statusEl.textContent = `Showing ${data.length} reports (source: ${apiUrl})`;
+            // sort by timestamp desc (most recent first)
+            data.sort((a,b) => Number(b.timestamp) - Number(a.timestamp));
+
+            for (const r of data) {
+                const card = createCard(r);
+                grid.appendChild(card);
+            }
+        } catch (err) {
+            if (err.name === 'AbortError') {
+                // ignore abort
+                statusEl.textContent = 'Request aborted.';
+                return;
+            }
+            console.error('Failed fetching whale reports', err);
+            statusEl.textContent = `Error: ${err.message}`;
+            const errorNote = document.createElement('div');
+            errorNote.style.color = '#f66';
+            errorNote.style.fontSize = '13px';
+            errorNote.style.marginTop = '8px';
+            errorNote.textContent = 'Check console / network or your API URL.';
+            // ensure only one error note
+            if (!statusEl.dataset.hasErrorNote) {
+                statusEl.appendChild(errorNote);
+                statusEl.dataset.hasErrorNote = '1';
+            }
+        } finally {
+            currentAbortController = null;
+        }
+    }
+
+    // --------------------
+    // UI wiring
+    // --------------------
+    refreshBtn.addEventListener('click', () => {
+        const limit = Number(limitInput.value) || 50;
+        fetchAndRender(limit);
+    });
+
+    // Enter key on limit input triggers refresh
+    limitInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            refreshBtn.click();
+        }
+    });
+
+    // initial load
+    (function init() {
+        const limit = Number(limitInput.value) || 50;
+        fetchAndRender(limit);
+        // optional: refresh every X seconds (commented out)
+        // setInterval(() => fetchAndRender(Number(limitInput.value)||50), 60000);
+    })();
+</script>
+</body>
+</html>

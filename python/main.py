@@ -4,90 +4,7 @@
 # Imports
 # -------------------------
 from on_chain.onchain_dashboard import get_all_metrics
-from sentiment.sentiment_sum import compute_sentiment_sum
-import csv
-
-# Define the CSV file paths at the module level
-CSV_FILE_PATHS = [
-    "sentiment/crypto_news_finbert_sentiment_whale_news.csv",
-    "sentiment/crypto_news_finbert_sentiment.csv",
-    "sentiment/crypto_news_finbert_sentiment_yfinance.csv"
-]
-
-
-def compute_total_sentiment_sum(keyword):
-    """
-    Calculate total sentiment sum across all CSV files for a given keyword.
-    Returns the total sum.
-    """
-    total_sum = 0
-
-    for file_path in CSV_FILE_PATHS:
-        try:
-            with open(file_path, newline="", encoding="utf-8") as csvfile:
-                reader = csv.DictReader(csvfile)
-
-                for row in reader:
-                    title = (row.get("title") or "")
-                    description = (row.get("description") or "")
-                    tags = (row.get("tags") or "")
-                    sentiment_raw = (row.get("sentiment") or "")
-
-                    combined_text = f"{title} {description} {tags}".lower()
-
-                    if keyword.lower() in combined_text:
-                        s = sentiment_raw.lower()
-                        if "positive" in s:
-                            total_sum += 1
-                        elif "negative" in s:
-                            total_sum -= 1
-                        # neutral adds 0, so no action needed
-
-        except FileNotFoundError:
-            print(f"Warning: {file_path} not found - skipping")
-        except Exception as e:
-            print(f"Error reading {file_path}: {e}")
-
-    return total_sum
-
-
-# -------------------------
-# Combined wrapper
-# -------------------------
-def gather_all_data(symbol: str, keyword: str):
-    """
-    Returns all metrics and sentiment sum as separate variables.
-    Note: Removed csv_path parameter as we're using multiple files
-    """
-    # Get on-chain metrics
-    metrics = get_all_metrics(symbol)
-
-    # Get sentiment sum from all CSV files
-    sentiment_sum = compute_total_sentiment_sum(keyword)
-
-    # Assign to individual variables
-    asset = metrics.get("Asset")
-    active_addresses = metrics.get("Active Addresses")
-    transactions = metrics.get("Transactions")
-    hash_rate = metrics.get("Hash Rate")
-    mvrv = metrics.get("MVRV")
-    tvl = metrics.get("TVL")
-    nvt = metrics.get("NVT")
-    coingecko_id = metrics.get("CoinGecko ID")
-
-    # Return both dict and individual variables as a tuple
-    return metrics, (
-        asset,
-        active_addresses,
-        transactions,
-        hash_rate,
-        mvrv,
-        tvl,
-        nvt,
-        coingecko_id,
-        sentiment_sum
-    )
-
+from sentiment.symbol_sentiment import get_sentiment_sum  # <-- new DB backed function
 
 # -------------------------
 # Scaling ranges and weights (unchanged)
@@ -130,6 +47,44 @@ def minmax_scale(value, min_val, max_val, invert=False):
     return round(scaled, 4)
 
 
+def gather_all_data(symbol: str):
+    """
+    Returns on-chain metrics and sentiment_sum (from DB) as a tuple:
+      (metrics_dict, (asset, active_addresses, transactions, ... , sentiment_sum))
+    """
+    # Get on-chain metrics
+    metrics = get_all_metrics(symbol)
+
+    # Get sentiment sum from DB-backed function
+    try:
+        sentiment_sum = int(get_sentiment_sum(symbol) or 0)
+    except Exception as e:
+        print(f"Warning: error obtaining sentiment for {symbol}: {e}")
+        sentiment_sum = 0
+
+    # Assign to individual variables
+    asset = metrics.get("Asset")
+    active_addresses = metrics.get("Active Addresses")
+    transactions = metrics.get("Transactions")
+    hash_rate = metrics.get("Hash Rate")
+    mvrv = metrics.get("MVRV")
+    tvl = metrics.get("TVL")
+    nvt = metrics.get("NVT")
+    coingecko_id = metrics.get("CoinGecko ID")
+
+    return metrics, (
+        asset,
+        active_addresses,
+        transactions,
+        hash_rate,
+        mvrv,
+        tvl,
+        nvt,
+        coingecko_id,
+        sentiment_sum
+    )
+
+
 def combination(metrics: dict, sentiment_sum: float):
     """
     MinMax-scaled on-chain + sentiment trading signal
@@ -149,15 +104,16 @@ def combination(metrics: dict, sentiment_sum: float):
     mvrv = minmax_scale(mvrv_raw, *SCALING_RANGES["mvrv"], invert=True)
 
     onchain_score = (
-            addr * WEIGHTS["active_addresses"] +
-            tx * WEIGHTS["transactions"] +
-            hash_r * WEIGHTS["hashrate"] +
-            tvl * WEIGHTS["tvl"] +
-            nvt * WEIGHTS["nvt"] +
-            mvrv * WEIGHTS["mvrv"]
+        addr * WEIGHTS["active_addresses"] +
+        tx * WEIGHTS["transactions"] +
+        hash_r * WEIGHTS["hashrate"] +
+        tvl * WEIGHTS["tvl"] +
+        nvt * WEIGHTS["nvt"] +
+        mvrv * WEIGHTS["mvrv"]
     )
 
-    sentiment_score = max(min(sentiment_sum / 10, 1.0), -1.0)  # Normalize sentiment sum
+    # Normalize sentiment sum into [-1, 1], same logic you had before
+    sentiment_score = max(min(sentiment_sum / 10, 1.0), -1.0)
     print("Sentiment Sum:", sentiment_sum)
     print("Normalized Sentiment Score:", sentiment_score)
 
@@ -188,17 +144,14 @@ def combination(metrics: dict, sentiment_sum: float):
 # -------------------------
 # Main function
 # -------------------------
-def main(sym="BTC", zbor="Bitcoin"):
+def main(sym="BTC"):
     """
     Main function that processes data for a given cryptocurrency.
-    Note: Removed pateka parameter as we're using all CSV files
     """
-    # Example inputs
-    symbol = sym
-    keyword = zbor
+    symbol = sym.split("-")[0]
 
-    # Gather all data
-    metrics_dict, metrics_vars = gather_all_data(symbol, keyword)
+    # Gather all data (on-chain + DB sentiment)
+    metrics_dict, metrics_vars = gather_all_data(symbol)
 
     # Unpack variables
     (
@@ -226,8 +179,6 @@ def main(sym="BTC", zbor="Bitcoin"):
     print("\n" + "=" * 50)
     print(f"DATA FOR {symbol}")
     print("=" * 50)
-    print(f"Analyzed keyword: {keyword}")
-    print(f"CSV files processed: {len(CSV_FILE_PATHS)}")
     print(f"Sentiment sum (raw): {sentiment_sum}")
 
     print("\n--- On-chain Metrics ---")
@@ -243,7 +194,6 @@ def main(sym="BTC", zbor="Bitcoin"):
     # Return results for potential further processing
     return {
         "symbol": symbol,
-        "keyword": keyword,
         "signal": prediction["signal"],
         "final_score": prediction["final_score"],
         "sentiment_sum": sentiment_sum,
@@ -259,22 +209,15 @@ if __name__ == "__main__":
     print("\n" + "=" * 60)
     print("BITCOIN ANALYSIS")
     print("=" * 60)
-    btc_result = main("BTC", "Bitcoin")
+    btc_result = main("BTC-USD")
     results.append(btc_result)
 
     # Ethereum analysis
     print("\n" + "=" * 60)
     print("ETHEREUM ANALYSIS")
     print("=" * 60)
-    eth_result = main("ETH", "Ethereum")
+    eth_result = main("ETH-USD")
     results.append(eth_result)
-
-    # Optional: Add more cryptocurrencies
-    # print("\n" + "="*60)
-    # print("SOLANA ANALYSIS")
-    # print("="*60)
-    # sol_result = main("SOL", "Solana")
-    # results.append(sol_result)
 
     # Summary report
     print("\n" + "=" * 60)
@@ -282,4 +225,5 @@ if __name__ == "__main__":
     print("=" * 60)
     for result in results:
         print(
-            f"{result['symbol']:5} | Signal: {result['signal']:7} | Score: {result['final_score']:.3f} | Sentiment: {result['sentiment_sum']:+d}")
+            f"{result['symbol']:5} | Signal: {result['signal']:7} | Score: {result['final_score']:.3f} | Sentiment: {result['sentiment_sum']:+d}"
+        )

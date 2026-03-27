@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Crypto Intro</title>
+
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            margin: 0;
+            color: #e0e0e0;
+            background-color: #121212;
+        }
+
+        .page-container {
+            padding: 48px 32px;
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+        }
+
+        h1 {
+            font-size: 36px;
+            color: #ffffff;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #aaaaaa;
+            font-size: 15px;
+        }
+
+        .section {
+            background-color: #1e1e1e;
+            border-radius: 14px;
+            padding: 32px;
+            box-shadow: 0 0 12px rgba(0,0,0,0.5);
+        }
+
+        .section h2 {
+            margin-top: 0;
+            margin-bottom: 16px;
+            font-size: 26px;
+            color: #ffffff;
+        }
+
+        .term {
+            margin-bottom: 20px;
+        }
+
+        .term h3 {
+            margin: 0 0 6px 0;
+            font-size: 18px;
+            color: #17a2b8;
+        }
+
+        .term p {
+            margin: 0;
+            color: #cccccc;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .note {
+            margin-top: 20px;
+            font-size: 13px;
+            color: #aaaaaa;
+            font-style: italic;
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- HEADER -->
+<div th:replace="fragments/header :: header"></div>
+
+<div class="page-container">
+
+    <div style=" text-align: center">
+        <h1>Crypto Terminology Explained</h1>
+        <p class="subtitle">
+            Starting your cryptocurrency journey? Learn the essential terms and metrics used in crypto analysis.
+        </p>
+    </div>
+
+    <!-- ================= OHLCV ================= -->
+    <div class="section">
+        <h2>OHLCV Explained</h2>
+
+        <div class="term">
+            <h3>Open</h3>
+            <p>
+                The price of an asset at the beginning of a specific time period (e.g. the start of the day).
+            </p>
+        </div>
+
+        <div class="term">
+            <h3>High</h3>
+            <p>
+                The highest price reached during that time period.
+            </p>
+        </div>
+
+        <div class="term">
+            <h3>Low</h3>
+            <p>
+                The lowest price reached during that time period.
+            </p>
+        </div>
+
+        <div class="term">
+            <h3>Close</h3>
+            <p>
+                The price at the end of the time period. This is often the most important value for analysis.
+            </p>
+        </div>
+
+        <div class="term">
+            <h3>Volume</h3>
+            <p>
+                The total amount of the asset traded during the time period. High volume usually indicates strong market interest.
+            </p>
+        </div>
+
+        <div class="note">
+            OHLCV data is the foundation of candlestick charts and technical analysis.
+        </div>
+    </div>
+
+    <!-- ================= ON-CHAIN METRICS ================= -->
+    <div class="section">
+        <h2>On-Chain Metrics</h2>
+
+        <div class="term">
+            <h3>Active Addresses</h3>
+            <p>
+                The number of unique wallet addresses that were active on the blockchain. A higher number suggests increased network usage.
+            </p>
+        </div>
+
+        <div class="term">
+            <h3>Transactions</h3>
+            <p>
+                The total number of transactions processed on the blockchain in a given period.
+            </p>
+        </div>
+
+        <div class="term">
+            <h3>MVRV Ratio</h3>
+            <p>
+                Market Value to Realized Value ratio. It helps identify whether an asset is overvalued or undervalued.
+            </p>
+        </div>
+
+        <div class="term">
+            <h3>Network Hash Rate</h3>
+            <p>
+                The total computational power securing the blockchain. Higher hash rate generally means higher network security.
+            </p>
+        </div>
+
+        <div class="term">
+            <h3>Exchange Inflow</h3>
+            <p>
+                The amount of cryptocurrency sent to exchanges. High inflow may indicate selling pressure.
+            </p>
+        </div>
+
+        <div class="term">
+            <h3>Exchange Outflow</h3>
+            <p>
+                The amount of cryptocurrency withdrawn from exchanges. Often associated with long-term holding.
+            </p>
+        </div>
+
+        <div class="term">
+            <h3>Net Flow</h3>
+            <p>
+                The difference between inflow and outflow. Negative net flow suggests accumulation.
+            </p>
+        </div>
+    </div>
+
+    <!-- ================= TECHNICAL ANALYSIS ================= -->
+    <div class="section">
+        <h2>Technical Analysis Indicators</h2>
+
+        <div class="term">
+            <h3>RSI (Relative Strength Index)</h3>
+            <p>
+                Measures momentum on a scale from 0 to 100. Values above 70 indicate overbought conditions, below 30 oversold.
+            </p>
+        </div>
+
+        <div class="term">
+            <h3>MACD</h3>
+            <p>
+                Moving Average Convergence Divergence. Shows trend direction and momentum using moving averages.
+            </p>
+        </div>
+
+        <div class="term">
+            <h3>Stochastic Oscillator</h3>
+            <p>
+                Compares closing price to a price range over time to identify overbought and oversold conditions.
+            </p>
+        </div>
+
+        <div class="term">
+            <h3>ADX</h3>
+            <p>
+                Average Directional Index. Measures the strength of a trend, regardless of direction.
+            </p>
+        </div>
+
+        <div class="term">
+            <h3>CCI</h3>
+            <p>
+                Commodity Channel Index. Identifies cyclical trends and extreme price movements.
+            </p>
+        </div>
+
+        <div class="term">
+            <h3>SMA / EMA / WMA</h3>
+            <p>
+                Different types of moving averages. SMA is simple, EMA reacts faster to price changes, WMA prioritizes recent prices.
+            </p>
+        </div>
+
+        <div class="term">
+            <h3>Bollinger Bands</h3>
+            <p>
+                Volatility bands placed above and below a moving average. Used to identify price extremes.
+            </p>
+        </div>
+
+        <div class="term">
+            <h3>Volume SMA</h3>
+            <p>
+                A moving average of trading volume used to confirm trend strength.
+            </p>
+        </div>
+    </div>
+    <!-- ================= WHALE MOVEMENTS ================= -->
+    <div class="section">
+        <h2>Whale Movements</h2>
+
+        <div class="term">
+            <h3>What Is a Whale?</h3>
+            <p>
+                In cryptocurrency, a whale refers to an individual, institution, or entity that holds a very large amount of a specific crypto asset.
+                Because of their size, whales can significantly influence market prices.
+            </p>
+        </div>
+
+        <div class="term">
+            <h3>Whale Movements</h3>
+            <p>
+                Whale movements describe large transfers of cryptocurrency between wallets, exchanges, or custodial services.
+                These movements are closely monitored because they often precede major price volatility.
+            </p>
+        </div>
+
+        <div class="term">
+            <h3>Whale Deposits to Exchanges</h3>
+            <p>
+                When whales send large amounts of crypto to exchanges, it is often interpreted as a potential intent to sell,
+                which may increase selling pressure and lead to price drops.
+            </p>
+        </div>
+
+        <div class="term">
+            <h3>Whale Withdrawals from Exchanges</h3>
+            <p>
+                Large withdrawals from exchanges to private wallets are usually seen as a bullish signal,
+                suggesting accumulation or long-term holding.
+            </p>
+        </div>
+
+        <div class="term">
+            <h3>Why Whale Movements Matter</h3>
+            <p>
+                Since whales control significant liquidity, their actions can trigger sharp price movements,
+                influence market sentiment, and cause cascading effects among retail traders.
+            </p>
+        </div>
+
+        <div class="note">
+            Whale movement data is often tracked using on-chain analytics tools and alert systems.
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

@@ -23,36 +23,53 @@ public class CryptoService {
     /**
      * Returns a Page of latest row per symbol (one row per symbol)
      */
-    public Page<LatestDto> getLatestPerSymbol(Pageable pageable) {
-        Integer total = jdbcTemplate.queryForObject("SELECT COUNT(DISTINCT symbol) FROM daily", Integer.class);
+    public Page<LatestDto> getLatestPerSymbol(Pageable pageable, String search) {
+
+        String filter = "";
+        Object[] params;
+
+        if (search != null && !search.isEmpty()) {
+            filter = " WHERE d.symbol ILIKE ? ";
+            params = new Object[]{"%" + search + "%", pageable.getPageSize(), pageable.getOffset()};
+        } else {
+            params = new Object[]{pageable.getPageSize(), pageable.getOffset()};
+        }
+
+        Integer total = jdbcTemplate.queryForObject(
+                "SELECT COUNT(DISTINCT symbol) FROM daily" +
+                        (search != null && !search.isEmpty() ? " WHERE symbol ILIKE ?" : ""),
+                search != null && !search.isEmpty() ? new Object[]{"%" + search + "%"} : new Object[]{},
+                Integer.class
+        );
+
         if (total == null) total = 0;
 
-        // Build simple order by
         String orderBy = "d.symbol ASC";
         if (pageable.getSort().isSorted()) {
             Sort.Order order = pageable.getSort().iterator().next();
             String prop = order.getProperty();
             String dir = order.isAscending() ? "ASC" : "DESC";
-            if ("volume".equalsIgnoreCase(prop) || "close".equalsIgnoreCase(prop) || "date".equalsIgnoreCase(prop) || "symbol".equalsIgnoreCase(prop)) {
-                orderBy = "d." + prop + " " + dir;
-            }
+            orderBy = "d." + prop + " " + dir;
         }
 
-        String sql = "SELECT d.symbol, d.date, d.open, d.high, d.low, d.close, d.volume, d.source_timestamp " +
+        String sql =
+                "SELECT d.symbol, d.date, d.open, d.high, d.low, d.close, d.volume, d.source_timestamp " +
                 "FROM daily d " +
                 "INNER JOIN (SELECT symbol, MAX(date) AS max_date FROM daily GROUP BY symbol) latest " +
                 "ON d.symbol = latest.symbol AND d.date = latest.max_date " +
-                "ORDER BY " + orderBy + " LIMIT ? OFFSET ?";
+                filter +
+                " ORDER BY " + orderBy +
+                " LIMIT ? OFFSET ?";
 
-        int limit = pageable.getPageSize();
-        int offset = (int) pageable.getOffset();
-
-        List<LatestDto> content = jdbcTemplate.query(sql,
-                new Object[]{limit, offset},
-                new BeanPropertyRowMapper<>(LatestDto.class));
+        List<LatestDto> content = jdbcTemplate.query(
+                sql,
+                params,
+                new BeanPropertyRowMapper<>(LatestDto.class)
+        );
 
         return new PageImpl<>(content, pageable, total);
     }
+
 
     public Page<Daily> getHistory(String symbol, Pageable pageable) {
         return dailyRepository.findBySymbolOrderByDateDesc(symbol, pageable);

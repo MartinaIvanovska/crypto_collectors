@@ -1,6 +1,7 @@
 package mk.ukim.finki.das.cryptoproject.web;
 
 import mk.ukim.finki.das.cryptoproject.model.Daily;
+import mk.ukim.finki.das.cryptoproject.service.CryptoNewsService;
 import mk.ukim.finki.das.cryptoproject.service.CryptoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -20,6 +21,10 @@ public class CryptoController {
     @Autowired
     private CryptoService cryptoService;
 
+    @Autowired
+    private CryptoNewsService cryptoNewsService;
+
+
     /**
      * List latest row per symbol (one row per symbol).
      * Supports pageable + sorting (symbol, date, close, volume).
@@ -30,6 +35,7 @@ public class CryptoController {
             @RequestParam(value = "pageNum", defaultValue = "1") int pageNum,
             @RequestParam(value = "pageSize", defaultValue = "20") int pageSize,
             @RequestParam(value = "prop", defaultValue = "symbol") String prop,
+            @RequestParam(value = "search", required = false) String search,
             Model model) {
         Pageable pageable = null;
         if (prop.equals("symbol")){
@@ -38,8 +44,9 @@ public class CryptoController {
         }else{
             pageable = PageRequest.of(pageNum - 1, pageSize, Sort.by(prop).descending());
         }
-        Page<LatestDto> page = cryptoService.getLatestPerSymbol(pageable);
+        Page<LatestDto> page = cryptoService.getLatestPerSymbol(pageable, search);
         model.addAttribute("page", page);
+        model.addAttribute("search", search);
 
         return "list";
     }
@@ -62,6 +69,7 @@ public class CryptoController {
         model.addAttribute("page", page);
         model.addAttribute("symbol", symbol);
         model.addAttribute("latest", latest);
+        model.addAttribute("news", cryptoNewsService.getLatestNewsForSymbol(symbol));
 
         return "history"; //
     }

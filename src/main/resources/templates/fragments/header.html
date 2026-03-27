@@ -40,12 +40,51 @@
         .header .username {
             font-weight: bold;
         }
+        .pagination li {
+            margin: 0 4px;
+        }
+
+        .pagination a {
+            text-decoration: none;
+            color: #17a2b8;
+            padding: 5px 10px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .pagination a:hover {
+            background-color: #117a8b;
+            color: white;
+        }
+
+        .pagination .active a {
+            background-color: #17a2b8;
+            color: white;
+        }
+
+        .pagination .disabled a {
+            color: #555;
+            border-color: #555;
+            pointer-events: none;
+        }
+
+        .pager {
+            margin-top: 16px;
+            display: flex;
+            justify-content: center;
+        }
+        .pagination {
+            list-style: none;
+            display: flex;
+            padding: 0;
+        }
     </style>
 
     <div class="header">
-        <div class="title">
+        <a class="title" th:href="@{/home}" style="color: white; text-decoration: none">
             Crypto Collectors
-        </div>
+        </a>
 
         <div class="auth-buttons">
 

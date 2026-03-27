@@ -11,4 +11,6 @@ public interface DailyRepository extends JpaRepository<Daily, DailyId> {
     Page<Daily> findBySymbolOrderByDateDesc(String symbol, Pageable pageable);
 
     Daily findTopBySymbolOrderByDateDesc(String symbol);
+
+    Page<Daily> findBySymbolContainingIgnoreCaseOrderByDateDesc(String symbol, Pageable pageable);
 }

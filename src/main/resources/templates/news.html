@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Latest Crypto News</title>
+
+    <style>
+        /* Dark theme, consistent with Crypto Collectors */
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            margin: 0;
+            color: #e0e0e0;
+            background-color: #121212;
+        }
+
+        .page-container {
+            padding: 48px 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 40px;
+        }
+
+        .hero {
+            width: 100%;
+            max-width: 1000px;
+            background-color: #1e1e1e;
+            border-radius: 16px;
+            padding: 36px 40px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.6);
+            text-align: center;
+        }
+
+        .hero h1 {
+            margin: 0 0 8px 0;
+            font-size: 34px;
+            color: #ffffff;
+        }
+
+        .hero p {
+            margin: 0;
+            color: #aaaaaa;
+            font-size: 14px;
+        }
+
+        .card-grid {
+            width: 100%;
+            max-width: 1000px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        .card {
+            background-color: #1e1e1e;
+            border-radius: 14px;
+            padding: 18px;
+            box-shadow: 0 0 12px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .news-image {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.04);
+            background-color: #141414;
+        }
+
+        .card h3 {
+            margin: 0;
+            font-size: 20px;
+            color: #ffffff;
+        }
+
+        .meta {
+            margin: 0;
+            color: #9b9b9b;
+            font-size: 13px;
+        }
+
+        .excerpt {
+            margin: 0;
+            color: #cccccc;
+            font-size: 14px;
+            line-height: 1.45;
+            /* optional truncation */
+            max-height: 4.2em;
+            overflow: hidden;
+        }
+
+        .card a.read-more {
+            align-self: flex-start;
+            text-decoration: none;
+            color: #ffffff;
+            background-color: #17a2b8;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            transition: background 0.15s;
+        }
+
+        .card a.read-more:hover {
+            background-color: #117a8b;
+        }
+
+        .no-image-note {
+            font-size: 12px;
+            color: #888888;
+        }
+
+        /* paging / footer area */
+        .paging {
+            width: 100%;
+            max-width: 1000px;
+            display:flex;
+            justify-content: center;
+            padding: 8px 0 40px 0;
+        }
+        .sentiment-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        .sentiment-badge {
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.4px;
+        }
+
+        /* sentiment colors */
+        .sentiment-positive {
+            background-color: rgba(40, 167, 69, 0.2);
+            color: #28a745;
+        }
+
+        .sentiment-neutral {
+            background-color: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+        }
+
+        .sentiment-negative {
+            background-color: rgba(220, 53, 69, 0.2);
+            color: #dc3545;
+        }
+
+        .sentiment-confidence {
+            color: #9b9b9b;
+        }
+        /* ---------- RESPONSIVE ---------- */
+        @media (max-width: 768px) {
+            .card-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .news-image {
+                height: 220px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- HEADER -->
+<div th:replace="fragments/header :: header"></div>
+
+<div class="page-container">
+
+    <!-- TOP WIDE CARD -->
+    <div class="hero">
+        <h1>Latest News</h1>
+        <p>Stay updated with the latest crypto announcements, market-moving stories and commentary.</p>
+    </div>
+
+    <!-- GRID CARDS -->
+    <div class="card-grid">
+
+        <!-- iterate through page.content -->
+        <div class="card" th:each="n : ${page.content}">
+
+            <!-- image (only rendered if imageUrl is present) -->
+            <div th:if="${n.imageUrl != null}">
+                <img th:src="${n.imageUrl}" th:alt="${n.title}" class="news-image"/>
+            </div>
+            <div th:if="${n.imageUrl == null}">
+                <div class="no-image-note">No image available</div>
+            </div>
+
+            <h3 th:text="${n.title}">Article title</h3>
+            <p class="meta" th:text="${#temporals.format(n.publishedAt, 'yyyy-MM-dd HH:mm')}">2025-01-01 12:00</p>
+            <div class="sentiment-row" th:if="${n.sentiment != null}">
+                <span class="sentiment-badge"
+                      th:text="${n.sentiment}"
+                      th:classappend="
+                          ${n.sentiment == 'positive'} ? ' sentiment-positive' :
+                          (${n.sentiment == 'negative'} ? ' sentiment-negative' :
+                          ' sentiment-neutral')">
+                    POSITIVE
+                </span>
+
+                <span class="sentiment-confidence"
+                      th:if="${n.confidence != null}"
+                      th:text="'Confidence: ' + ${#numbers.formatDecimal(n.confidence * 100, 1, 2)} + '%'">
+                        Confidence: 85.3%
+                </span>
+            </div>
+
+            <!-- description or text (use description if available, otherwise text) -->
+            <p class="excerpt" th:if="${n.description != null and n.description != ''}" th:text="${n.description}">Short description...</p>
+            <p class="excerpt" th:if="${n.description == null or n.description == ''}" th:text="${n.text}">Article excerpt...</p>
+
+            <a th:href="${n.url}" target="_blank" rel="noopener noreferrer" class="read-more">Read more</a>
+        </div>
+
+    </div>
+
+    <!-- Paging fragment (keeps your existing paging fragment) -->
+    <div class="paging" th:replace="fragments/paging :: pageSection(${page})"></div>
+
+</div>
+
+</body>
+</html>
