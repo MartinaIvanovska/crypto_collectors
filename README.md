@@ -4,9 +4,9 @@ A comprehensive web application for cryptocurrency market analysis that collects
 
 ## Links
 
-Hosted on Microsoft Azure:  https://cryptocollectors-hhcse6gdhwemedch.norwayeast-01.azurewebsites.net/home
-Microservice hosted on Microsoft Azure: https://kriptoservis-h3f8hkcce8d8dqf3.norwayeast-01.azurewebsites.net/docs
-Video overview of the entire architecture: https://github.com/MartinaIvanovska/crypto_collectors/blob/main/video/video.mp4
+- Hosted on Microsoft Azure:  https://cryptocollectors-hhcse6gdhwemedch.norwayeast-01.azurewebsites.net/home
+- Microservice hosted on Microsoft Azure: https://kriptoservis-h3f8hkcce8d8dqf3.norwayeast-01.azurewebsites.net/docs
+- Video overview of the entire architecture: https://github.com/MartinaIvanovska/crypto_collectors/blob/main/video/video.mp4
 
 ## Overview
 
